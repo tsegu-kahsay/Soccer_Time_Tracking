@@ -676,6 +676,9 @@
     /* Game player grid: 1 column on phone */
     .game-players-grid { grid-template-columns: 1fr 1fr; }
 
+    /* Game field: smaller on tablet, full width */
+    #game-soccer-field { width: 180px !important; height: 270px !important; }
+
     /* Slot grid in formation: 1 column */
     .slot-grid { grid-template-columns: 1fr !important; }
 
@@ -725,6 +728,10 @@
 
     /* Soccer field: full width, shorter */
     .soccer-field { height: 300px; }
+
+    /* Game live field: stack above player list on tiny phones */
+    #game-soccer-field { width: 100% !important; height: 200px !important; max-width: 100% !important; }
+    #game-soccer-field ~ * { margin-top: 8px; }
 
     /* Field player dots: slightly smaller */
     .field-player .player-dot { width: 30px; height: 30px; font-size: 0.55rem; }
@@ -926,6 +933,9 @@
     <div>
       <div class="halftime-banner" id="halftime-banner">⚽ HALF TIME ⚽</div>
       <div class="pause-banner" id="pause-banner">⏸ PAUSED</div>
+      <div id="duplicate-banner" style="display:none;background:#1a4fa8;color:white;text-align:center;
+           padding:10px;font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:0.08em;
+           margin-bottom:16px;border-radius:8px;"></div>
 
       <div class="timer-display">
         <div class="period" id="period-label">FIRST HALF</div>
@@ -952,11 +962,28 @@
         </div>
       </div>
 
-      <div class="section-title">🟢 ON FIELD <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;">Click a player to reposition</span></div>
-      <div class="game-players-grid" id="field-players-ui"></div>
-
-      <div class="section-title">🪑 ON BENCH</div>
-      <div class="game-players-grid" id="bench-players-ui"></div>
+      <!-- Live field view -->
+      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px;">
+        <div style="flex:0 0 auto;">
+          <div class="soccer-field" id="game-soccer-field" style="width:220px;height:330px;pointer-events:none;">
+            <div style="position:absolute;width:100%;height:100%;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 50px,transparent 50px,transparent 100px);"></div>
+            <div class="halfway-line"></div>
+            <div class="center-circle field-marking"></div>
+            <div class="center-dot"></div>
+            <div class="penalty-box-top"></div>
+            <div class="penalty-box-bot"></div>
+            <div class="goal-top"></div>
+            <div class="goal-bot"></div>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-align:center;">Live positions</p>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="section-title" style="margin-top:0;">🟢 ON FIELD <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;">Click a player to reposition</span></div>
+          <div class="game-players-grid" id="field-players-ui"></div>
+          <div class="section-title">🪑 ON BENCH</div>
+          <div class="game-players-grid" id="bench-players-ui"></div>
+        </div>
+      </div>
     </div>
 
     <div>
@@ -976,7 +1003,7 @@
     <h2 style="font-size:1.8rem; color:var(--gold);">MATCH REPORT</h2>
     <button class="btn btn-green" onclick="exportExcel()" style="margin-left:auto;">⬇ EXPORT EXCEL</button>
     <button class="btn btn-gold" onclick="exportWordReport()">📄 EXPORT WORD</button>
-    <button class="btn" onclick="exportPDFReport()" style="background:#c0392b;color:white;min-height:44px;padding:10px 18px;font-size:1rem;">🖨 EXPORT PDF</button>
+    <button class="btn" onclick="exportPDFReport()" style="background:#c0392b;color:white;min-height:44px;padding:10px 18px;font-size:1rem;">📥 EXPORT PDF</button>
   </div>
   <div class="report-table-wrap" id="report-table-wrap">
     <div class="empty-state">Complete a game to see the report here.</div>
@@ -985,18 +1012,89 @@
 
 <!-- ===== SUB MODAL ===== -->
 <div class="modal-overlay" id="sub-modal">
-  <div class="modal" style="width:480px;">
+  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
     <h2>🔄 SUBSTITUTION</h2>
-    <p style="color:var(--text-muted);font-size:0.83rem;margin-bottom:16px;">Select who comes off, who comes on, and the role for the incoming player.</p>
+    <p style="color:var(--text-muted);font-size:0.83rem;margin-bottom:14px;">Select who comes off, who comes on, and the role. Add up to 4 simultaneous subs.</p>
 
-    <label>Player Coming <span style="color:var(--red)">OFF</span> (from field)</label>
-    <select id="sub-out-select"></select>
+    <!-- Sub 1 (always visible) -->
+    <div style="background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 1</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-1"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-1"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-1"></select>
+    </div>
 
-    <label style="margin-top:12px;">Player Coming <span style="color:#4ade80">ON</span> (from bench)</label>
-    <select id="sub-in-select"></select>
+    <!-- Sub 2 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-2" onchange="toggleSubSlot(2,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 2nd substitution
+    </label>
+    <div id="sub-slot-2" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 2</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-2"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-2"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-2"></select>
+    </div>
 
-    <label style="margin-top:12px;">Role for incoming player</label>
-    <select id="sub-role-select"></select>
+    <!-- Sub 3 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-3" onchange="toggleSubSlot(3,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 3rd substitution
+    </label>
+    <div id="sub-slot-3" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 3</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-3"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-3"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-3"></select>
+    </div>
+
+    <!-- Sub 4 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-4" onchange="toggleSubSlot(4,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 4th substitution
+    </label>
+    <div id="sub-slot-4" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 4</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-4"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-4"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-4"></select>
+    </div>
 
     <div class="btn-row">
       <button class="btn btn-sm" style="padding:8px 16px;font-size:0.9rem;" onclick="closeModal('sub-modal')">CANCEL</button>
@@ -1045,12 +1143,12 @@
 
     <div style="margin:16px 0;border-top:1px solid #1e3a22;"></div>
 
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:12px;">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
       <input type="checkbox" id="repo-two-players" onchange="toggleRepoSecond(this.checked)" style="width:16px;height:16px;accent-color:var(--green);">
-      <span style="font-size:0.88rem;">Also reposition a second player at the same time</span>
+      <span style="font-size:0.88rem;">Also reposition a second player</span>
     </label>
 
-    <div id="repo-second-section" style="display:none;grid-template-columns:1fr 1fr;gap:16px;">
+    <div id="repo-second-section" style="display:none;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;">
       <div>
         <label>Player B</label>
         <select id="repo-player-b"></select>
@@ -1059,6 +1157,23 @@
       <div>
         <label>New role for Player B</label>
         <select id="repo-new-role-b"></select>
+      </div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+      <input type="checkbox" id="repo-three-players" onchange="toggleRepoThird(this.checked)" style="width:16px;height:16px;accent-color:var(--green);">
+      <span style="font-size:0.88rem;">Also reposition a third player</span>
+    </label>
+
+    <div id="repo-third-section" style="display:none;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label>Player C</label>
+        <select id="repo-player-c"></select>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);">Current role: <span id="repo-role-c" style="color:var(--gold)">—</span></div>
+      </div>
+      <div>
+        <label>New role for Player C</label>
+        <select id="repo-new-role-c"></select>
       </div>
     </div>
 
@@ -1112,7 +1227,9 @@ let period = 1;
 
 let playerState = {};
 let subQueue = { outId: null, inId: null, newRole: null };
-let halftimeElapsed = 0;   // ms elapsed at end of first half
+let halftimeElapsed = 0;   // game-clock ms at end of first half
+let halftimeBreakStart = 0; // wall-clock ms when halftime whistle blew
+let halftimeBreakMs = 0;    // actual break duration in wall-clock ms (excluded from all reports)
 let realClockInterval = null;
 
 // ============================================================
@@ -1367,6 +1484,63 @@ function renderGamePanel() {
   }
 }
 
+function renderGameField() {
+  const field = document.getElementById('game-soccer-field');
+  if (!field) return;
+  field.querySelectorAll('.field-player').forEach(e => e.remove());
+
+  const elapsed = getElapsed();
+
+  // Build a role→coords lookup from fieldSlots (exact match only, no fuzzy)
+  const roleCoords = {};
+  fieldSlots.forEach(s => { roleCoords[s.role] = { x: s.fieldX, y: s.fieldY }; });
+
+  // Stable fallback positions for roles not in fieldSlots (e.g. after reposition to new role)
+  // Uses a deterministic grid so the same role always lands in the same spot
+  const FALLBACK = [
+    {x:50,y:20},{x:20,y:35},{x:80,y:35},{x:35,y:50},{x:65,y:50},
+    {x:50,y:57},{x:22,y:65},{x:78,y:65},{x:35,y:76},{x:65,y:76},{x:50,y:88}
+  ];
+  const fallbackCache = {}; // role → coords, assigned on first encounter
+  let fallbackIdx = 0;
+  function getCoordsForRole(role) {
+    if (roleCoords[role]) return roleCoords[role];
+    if (fallbackCache[role]) return fallbackCache[role];
+    // Assign next available fallback slot
+    const pos = FALLBACK[fallbackIdx % FALLBACK.length];
+    fallbackIdx++;
+    fallbackCache[role] = pos;
+    return pos;
+  }
+
+  // Iterate live playerState — always reflects current subs/repositions
+  players.forEach(player => {
+    const state = playerState[player.id];
+    if (!state || !state.currentRole) return; // bench players don't appear on field
+
+    const currentRole = state.currentRole;
+    const coords = getCoordsForRole(currentRole);
+
+    const div = document.createElement('div');
+    div.className = 'field-player';
+    div.style.left = coords.x + '%';
+    div.style.top  = coords.y + '%';
+    div.style.pointerEvents = 'none';
+
+    const isGK = currentRole.toLowerCase().includes('goal');
+    const fieldTime = gameStarted ? formatMs(playerTimeOnField(String(player.id), elapsed)) : '';
+
+    div.innerHTML = `
+      <div class="player-dot ${isGK ? 'gk' : ''}" style="width:28px;height:28px;font-size:0.5rem;border-width:2px;">
+        ${initials(player.name)}
+      </div>
+      <div class="player-label" style="font-size:0.48rem;max-width:44px;">${player.name}</div>
+      ${gameStarted ? `<div class="player-role" style="font-size:0.42rem;color:rgba(255,255,255,0.7);">${fieldTime}</div>` : ''}
+    `;
+    field.appendChild(div);
+  });
+}
+
 function renderGamePlayers() {
   const fieldUI = document.getElementById('field-players-ui');
   const benchUI = document.getElementById('bench-players-ui');
@@ -1394,6 +1568,9 @@ function renderGamePlayers() {
       <div class="gpc-time">${t}</div>
     </div>`;
   }).join('') || '<div class="empty-state">No players on bench</div>';
+
+  // Update the live game field view
+  renderGameField();
 }
 
 // ============================================================
@@ -1409,6 +1586,8 @@ function startGame() {
   period = 1;
   elapsedBeforePause = 0;
   halftimeElapsed = 0;
+  halftimeBreakMs = 0;
+  halftimeBreakStart = 0;
   gameStartTime = Date.now();
 
   document.getElementById('btn-start').style.display       = 'none';
@@ -1476,6 +1655,7 @@ function triggerHalftime() {
   document.getElementById('btn-halftime').style.display    = 'none';
   document.getElementById('btn-resume').style.display      = 'inline-block';
   document.getElementById('period-label').textContent      = 'HALF TIME';
+  halftimeBreakStart = Date.now(); // start measuring the break
   addLog('halftime', null, null, elapsed);
   startRealClock();
   renderGamePlayers();
@@ -1485,12 +1665,22 @@ function resumeGame() {
   isHalftime = false;
   gamePaused = false;
   period = 2;
+  // Measure the actual wall-clock break so we can exclude it from all time reports
+  if (halftimeBreakStart > 0) {
+    halftimeBreakMs = Date.now() - halftimeBreakStart;
+  }
   gameStartTime = Date.now();
 
   const elapsed = elapsedBeforePause;
   players.forEach(p => {
     const state = playerState[p.id];
-    if (state.currentRole) {
+    if (!state.currentRole) return; // bench player — no segment needed
+    const lastSeg = state.segments[state.segments.length - 1];
+    if (lastSeg && lastSeg.end_ms === null) {
+      // Segment already open (e.g. from a halftime sub) — just mark it as H2
+      lastSeg.period = 2;
+    } else {
+      // Segment was closed at halftime — open a fresh H2 segment
       state.segments.push({ role: state.currentRole, start_ms: elapsed, end_ms: null, period: 2 });
     }
   });
@@ -1579,7 +1769,6 @@ function unpauseGame() {
 // ============================================================
 function openSubModal() {
   if (!gameStarted) { alert('Start the game first.'); return; }
-  // Allow during halftime or pause — just not before game starts
 
   const fieldPlayers = players.filter(p => playerState[p.id]?.currentRole);
   const benchPlayers = players.filter(p => !playerState[p.id]?.currentRole);
@@ -1587,40 +1776,58 @@ function openSubModal() {
   if (!fieldPlayers.length) { alert('No players on field!'); return; }
   if (!benchPlayers.length) { alert('No players on the bench!'); return; }
 
-  // Populate dropdowns
-  const outSel  = document.getElementById('sub-out-select');
-  const inSel   = document.getElementById('sub-in-select');
-  const roleSel = document.getElementById('sub-role-select');
-
-  outSel.innerHTML  = fieldPlayers.map(p => `<option value="${p.id}">${p.name} — ${playerState[p.id].currentRole}</option>`).join('');
-  inSel.innerHTML   = benchPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-
-  // Role list = all distinct roles currently or previously used + any fieldSlot roles
+  const fieldOpts = fieldPlayers.map(p => `<option value="${p.id}">${p.name} — ${playerState[p.id].currentRole}</option>`).join('');
+  const benchOpts = benchPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
   const allRoles = [...new Set([
     ...fieldSlots.map(s => s.role),
     ...Object.values(playerState).flatMap(s => s.segments.map(sg => sg.role))
   ])].filter(Boolean);
-  roleSel.innerHTML = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+  const roleOpts = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
 
-  // Pre-set role to the outgoing player's current role when out-select changes
-  outSel.onchange = () => {
-    const outId = outSel.value;
-    const curRole = playerState[outId]?.currentRole;
-    if (curRole) roleSel.value = curRole;
-  };
-  // Trigger once
-  outSel.dispatchEvent(new Event('change'));
+  // Populate all 4 slot dropdowns and wire role auto-select
+  [1,2,3,4].forEach(n => {
+    document.getElementById(`sub-out-${n}`).innerHTML  = fieldOpts;
+    document.getElementById(`sub-in-${n}`).innerHTML   = benchOpts;
+    document.getElementById(`sub-role-${n}`).innerHTML = roleOpts;
+    const outSel  = document.getElementById(`sub-out-${n}`);
+    const roleSel = document.getElementById(`sub-role-${n}`);
+    outSel.onchange = () => {
+      const cr = playerState[outSel.value]?.currentRole;
+      if (cr) roleSel.value = cr;
+    };
+    outSel.dispatchEvent(new Event('change'));
+  });
+
+  // Reset extra slots to hidden
+  [2,3,4].forEach(n => {
+    document.getElementById(`sub-add-${n}`).checked = false;
+    document.getElementById(`sub-slot-${n}`).style.display = 'none';
+  });
 
   document.getElementById('sub-modal').classList.add('open');
+}
+
+function toggleSubSlot(n, show) {
+  if (show && n > 2 && !document.getElementById(`sub-add-${n-1}`).checked) {
+    alert(`Please add sub ${n-1} first.`);
+    document.getElementById(`sub-add-${n}`).checked = false;
+    return;
+  }
+  document.getElementById(`sub-slot-${n}`).style.display = show ? 'block' : 'none';
+  if (!show) {
+    for (let i = n+1; i <= 4; i++) {
+      document.getElementById(`sub-add-${i}`).checked = false;
+      document.getElementById(`sub-slot-${i}`).style.display = 'none';
+    }
+  }
 }
 
 // Also allow clicking a field player card to pre-fill the sub modal
 function clickFieldPlayer(id) {
   if (!gameStarted) return;
   openSubModal();
-  // Pre-select this player as the one going out
   setTimeout(() => {
-    const outSel = document.getElementById('sub-out-select');
+    const outSel = document.getElementById('sub-out-1');
     if (outSel) { outSel.value = id; outSel.dispatchEvent(new Event('change')); }
   }, 50);
 }
@@ -1629,39 +1836,60 @@ function clickBenchPlayer(id) {
   if (!gameStarted) return;
   openSubModal();
   setTimeout(() => {
-    const inSel = document.getElementById('sub-in-select');
+    const inSel = document.getElementById('sub-in-1');
     if (inSel) inSel.value = id;
   }, 50);
 }
 
-function confirmSub() {
-  const elapsed  = getElapsed();   // correct whether running, paused, or halftime
-  const outId    = document.getElementById('sub-out-select').value;
-  const inId     = document.getElementById('sub-in-select').value;
-  const newRole  = document.getElementById('sub-role-select').value;
-
-  if (!outId || !inId || !newRole) { alert('Please fill all fields.'); return; }
-  if (String(outId) === String(inId)) { alert('A player cannot substitute themselves.'); return; }
-
-  // Close outgoing segment
+function applySingleSub(outId, inId, newRole, elapsed) {
+  if (!outId || !inId || !newRole) return false;
+  if (String(outId) === String(inId)) { alert('A player cannot substitute themselves.'); return false; }
   const outState = playerState[outId];
+  if (!outState) return false;
   const lastOutSeg = outState.segments[outState.segments.length - 1];
   if (lastOutSeg && lastOutSeg.end_ms === null) lastOutSeg.end_ms = elapsed;
   outState.currentRole = null;
   outState.subCount++;
-
-  // Open incoming segment
   const inState = playerState[inId];
-  // Close any existing open segment first (e.g. if they were on field)
+  if (!inState) return false;
   const lastInSeg = inState.segments[inState.segments.length - 1];
   if (lastInSeg && lastInSeg.end_ms === null) lastInSeg.end_ms = elapsed;
   inState.currentRole = newRole;
   inState.segments.push({ role: newRole, start_ms: elapsed, end_ms: null, period });
   inState.subCount++;
-
   addLog('sub', outId, inId, elapsed, newRole);
-  closeModal('sub-modal');
-  renderGamePlayers();
+  return true;
+}
+
+function confirmSub() {
+  const elapsed = getElapsed();
+  const usedOut = new Set();
+  const usedIn  = new Set();
+  let anyDone   = false;
+
+  for (let n = 1; n <= 4; n++) {
+    // Slot 1 is always active; slots 2-4 only if checkbox checked
+    if (n > 1 && !document.getElementById(`sub-add-${n}`).checked) continue;
+
+    const outId   = document.getElementById(`sub-out-${n}`).value;
+    const inId    = document.getElementById(`sub-in-${n}`).value;
+    const newRole = document.getElementById(`sub-role-${n}`).value;
+
+    if (!outId || !inId || !newRole) { alert(`Sub ${n}: please fill all fields.`); return; }
+    if (usedOut.has(outId)) { alert(`Sub ${n}: player going OFF was already used in an earlier sub.`); return; }
+    if (usedIn.has(inId))   { alert(`Sub ${n}: player coming ON was already used in an earlier sub.`); return; }
+
+    if (applySingleSub(outId, inId, newRole, elapsed)) {
+      usedOut.add(outId);
+      usedIn.add(inId);
+      anyDone = true;
+    }
+  }
+
+  if (anyDone) {
+    closeModal('sub-modal');
+    renderGamePlayers();
+  }
 }
 
 // ============================================================
@@ -1687,6 +1915,8 @@ function openRepositionModal() {
   document.getElementById('repo-new-role-a').innerHTML  = roleOpts;
   document.getElementById('repo-player-b').innerHTML    = playerOpts;
   document.getElementById('repo-new-role-b').innerHTML  = roleOpts;
+  document.getElementById('repo-player-c').innerHTML    = playerOpts;
+  document.getElementById('repo-new-role-c').innerHTML  = roleOpts;
 
   // Update role labels when selection changes
   const updateLabel = (selId, labelId) => {
@@ -1697,6 +1927,7 @@ function openRepositionModal() {
   };
   updateLabel('repo-player-a', 'repo-role-a');
   updateLabel('repo-player-b', 'repo-role-b');
+  updateLabel('repo-player-c', 'repo-role-c');
 
   // Pre-set new role dropdowns to each player's current role
   const syncRole = (playerSelId, roleSelId) => {
@@ -1708,17 +1939,36 @@ function openRepositionModal() {
   };
   syncRole('repo-player-a', 'repo-new-role-a');
   syncRole('repo-player-b', 'repo-new-role-b');
+  syncRole('repo-player-c', 'repo-new-role-c');
 
-  // Reset checkbox
+  // Reset checkboxes
   const cb = document.getElementById('repo-two-players');
   cb.checked = false;
   document.getElementById('repo-second-section').style.display = 'none';
+  const cb3 = document.getElementById('repo-three-players');
+  cb3.checked = false;
+  document.getElementById('repo-third-section').style.display = 'none';
 
   document.getElementById('reposition-modal').classList.add('open');
 }
 
 function toggleRepoSecond(show) {
   document.getElementById('repo-second-section').style.display = show ? 'grid' : 'none';
+  // If hiding second player, also hide third
+  if (!show) {
+    document.getElementById('repo-three-players').checked = false;
+    document.getElementById('repo-third-section').style.display = 'none';
+  }
+}
+
+function toggleRepoThird(show) {
+  // Can only enable third if second is enabled
+  if (show && !document.getElementById('repo-two-players').checked) {
+    alert('Please enable the second player first.');
+    document.getElementById('repo-three-players').checked = false;
+    return;
+  }
+  document.getElementById('repo-third-section').style.display = show ? 'grid' : 'none';
 }
 
 function confirmReposition() {
@@ -1734,10 +1984,21 @@ function confirmReposition() {
     const bRole = document.getElementById('repo-new-role-b').value;
     if (String(bId) === String(aId)) { alert('Player B must be different from Player A.'); return; }
     applyReposition(bId, bRole, elapsed);
+
+    const doThree = document.getElementById('repo-three-players').checked;
+    if (doThree) {
+      const cId   = document.getElementById('repo-player-c').value;
+      const cRole = document.getElementById('repo-new-role-c').value;
+      if (String(cId) === String(aId) || String(cId) === String(bId)) {
+        alert('Player C must be different from Players A and B.'); return;
+      }
+      applyReposition(cId, cRole, elapsed);
+    }
   }
 
   closeModal('reposition-modal');
   renderGamePlayers();
+  scheduleDuplicateCheck(); // start 30s countdown once after all repositions applied
 }
 
 function applyReposition(playerId, newRole, elapsed) {
@@ -1760,6 +2021,33 @@ function applyReposition(playerId, newRole, elapsed) {
   state.repositionCount = (state.repositionCount || 0) + 1;
 
   addLog('reposition', playerId, null, elapsed, newRole);
+}
+
+let _dupBannerTimer = null;
+function scheduleDuplicateCheck() {
+  clearTimeout(_dupBannerTimer);
+  _dupBannerTimer = setTimeout(() => {
+    const banner = document.getElementById('duplicate-banner');
+    if (!banner) return;
+
+    // Count how many field players share each role
+    const roleCounts = {};
+    players.forEach(p => {
+      const role = playerState[p.id]?.currentRole;
+      if (role) roleCounts[role] = (roleCounts[role] || 0) + 1;
+    });
+    const dupes = Object.entries(roleCounts).filter(([,c]) => c > 1);
+
+    if (dupes.length) {
+      const msg = dupes.map(([r,c]) => `${c}x ${r}`).join('  |  ');
+      banner.textContent = '⚠ DUPLICATE POSITIONS: ' + msg;
+      banner.style.display = 'block';
+      // Auto-hide after 15 seconds
+      setTimeout(() => { banner.style.display = 'none'; }, 15000);
+    } else {
+      banner.style.display = 'none';
+    }
+  }, 30000); // show 30 seconds after the reposition
 }
 
 // ============================================================
@@ -1867,11 +2155,11 @@ function buildReportData(elapsed) {
   return players.map(p => {
     const state = playerState[p.id] || { segments: [], subCount: 0, repositionCount: 0, currentRole: null };
 
-    // Total field time
+    // Total field time — segments are pure game-clock time, no break included
     const fieldMs = playerTimeOnField(p.id, elapsed);
     const benchMs = Math.max(0, elapsed - fieldMs);
 
-    // H1 / H2 split
+    // H1 / H2 split — htMs is game-clock boundary set at halftime whistle
     const htMs = halftimeElapsed || elapsed; // if no halftime yet, all is H1
     let h1Ms = 0, h2Ms = 0;
     state.segments.forEach(seg => {
@@ -1881,9 +2169,9 @@ function buildReportData(elapsed) {
       const h1Start = Math.min(segStart, htMs);
       const h1End   = Math.min(segEnd,   htMs);
       if (h1End > h1Start) h1Ms += h1End - h1Start;
-      // H2 portion: overlap with [htMs, elapsed]
+      // H2 portion: overlap of segment with [htMs, elapsed]
       const h2Start = Math.max(segStart, htMs);
-      const h2End   = Math.max(segEnd,   htMs);
+      const h2End   = Math.min(segEnd,   elapsed);   // cap at game end, not pushed up to htMs
       if (h2End > h2Start) h2Ms += h2End - h2Start;
     });
 
@@ -2006,6 +2294,7 @@ function buildReportHTML(elapsed, forPDF = false) {
   const summaryColW = ['18%','26%','8%','7%','7%','8%','6%','6%','7%'];
 
   // Fixed-width cells avoid Word auto-layout bugs
+  // td/tdL/ath/atd/atdA — all accept plain text (auto-escaped)
   const th = (text, w) =>
     `<th style="background:#1a7a3c;color:#ffffff;padding:5pt 6pt;border:1pt solid #0f4d25;
                 text-align:center;font-weight:bold;font-family:Calibri,sans-serif;font-size:10pt;
@@ -2013,11 +2302,11 @@ function buildReportHTML(elapsed, forPDF = false) {
 
   const td = (text, extraStyle='') =>
     `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:center;
-                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(text)}</td>`;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
 
   const tdL = (text, extraStyle='') =>
     `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:left;
-                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(text)}</td>`;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
 
   // Activity table column widths: From(10) To(10) Duration(11) Half(11) Activity(58)
   const actColW = ['10%','10%','11%','11%','58%'];
@@ -2027,10 +2316,10 @@ function buildReportHTML(elapsed, forPDF = false) {
                 width:${w};">${esc(text)}</th>`;
   const atd = (text, extraStyle='') =>
     `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:center;
-                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(text)}</td>`;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
   const atdA = (text, extraStyle='') =>
     `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:left;
-                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(text)}</td>`;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
 
   // Stats bar cell widths: 7 equal columns
   const sbW = '14.28%';
@@ -2062,22 +2351,42 @@ ${wordMeta}
 <style>
   body {
     font-family: Calibri, Arial, sans-serif;
-    font-size: 11pt;
+    font-size: 10pt;
     color: #222222;
     margin: 0;
     padding: 0;
   }
   .page-wrap {
-    margin: ${forPDF ? '0' : '72pt'};
-    padding: ${forPDF ? '40px 50px' : '0'};
+    margin: ${forPDF ? '0' : '36pt 54pt'};
+    padding: ${forPDF ? '30px 40px' : '0'};
   }
   table { border-collapse: collapse; }
-  @page { margin: 2cm; }
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm 2cm;
+  }
   @media print {
     .page-wrap { margin: 0; padding: 0; }
     body { margin: 0; }
+    @page { size: A4 landscape; margin: 1.5cm 2cm; }
   }
+  /* mso landscape for Word */
+  mso-page-orientation: landscape;
 </style>
+<!--[if gte mso 9]><xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>90</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+  </w:WordDocument>
+  <w:Preferences>
+    <w:Rsid w:Val="00000000"/>
+  </w:Preferences>
+</xml>
+<style>div.Section1{page:Section1;}
+@page Section1{size:841.95pt 595.35pt; mso-page-orientation:landscape; margin:72pt 72pt 72pt 72pt;}
+</style>
+<div class="Section1"><!-->
 </head>
 <body>
 <div class="page-wrap">
@@ -2120,7 +2429,7 @@ ${h1('Team Summary')}
   <tbody>
     ${reportData.map((row, i) => `
     <tr style="background:${i%2===0?'#f4f9f4':'#ffffff'};">
-      ${tdL('<b>'+esc(row.name)+'</b>')}
+      ${tdL(row.name, 'font-weight:bold;')}
       ${tdL(row.roles)}
       ${td(row.fieldTime)}
       ${td(row.h1Time)}
@@ -2195,11 +2504,11 @@ ${pageBreak()}`;
         }
 
         html += `<tr style="background:${i%2===0?'#f4f9f4':'#ffffff'};">
-          ${atd('<b>'+esc(formatMs(seg.start_ms))+'</b>')}
-          ${atd('<b>'+esc(formatMs(segEnd))+'</b>')}
+          ${atd(formatMs(seg.start_ms), 'font-weight:bold;')}
+          ${atd(formatMs(segEnd), 'font-weight:bold;')}
           ${atd(formatMs(segEnd - seg.start_ms))}
           ${atd(segHalf)}
-          ${atdA('Playing as ' + esc(seg.role || '—'), 'color:#1a7a3c;font-weight:bold;')}
+          ${atdA('Playing as ' + (seg.role || '—'), 'color:#1a7a3c;font-weight:bold;')}
         </tr>`;
 
         prevEnd = segEnd;
@@ -2291,83 +2600,62 @@ function exportWordReport() {
 }
 
 // ============================================================
-// PDF EXPORT — hidden iframe, no pop-up permission needed
+// PDF EXPORT
+// Downloads match-player-report.html — open it in any browser,
+// click the green button → Ctrl+P / Cmd+P → Save as PDF.
+// Mirrors the Word export: same blob-download, same platform logic.
+// Works on Windows, Mac, Android, iOS. No pop-up required.
 // ============================================================
 function exportPDFReport() {
   if (!gameStarted) { alert('No game data to export!'); return; }
 
-  const html = buildReportHTML(getElapsed(), true);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const reportHtml = buildReportHTML(getElapsed(), true);
 
-  if (isIOS) {
-    // iOS Safari: open in new tab, user taps Share → Print or Save to Files
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const tab  = window.open(url, '_blank');
-    if (!tab) {
-      // Pop-up blocked — show inline tap link
-      const wrap = document.getElementById('report-table-wrap');
-      const old  = document.getElementById('_pdf_link');
-      if (old) old.remove();
-      const a = document.createElement('a');
-      a.id   = '_pdf_link';
-      a.href = url;
-      a.target = '_blank';
-      a.textContent = '🖨 Tap here to open PDF view → then Share → Print';
-      a.style.cssText = 'display:block;text-align:center;padding:14px;margin:10px 0;'
-        + 'background:#3a0f0f;border:1px solid #c0392b;border-radius:8px;'
-        + 'color:#f5a5a5;font-size:1rem;text-decoration:none;';
-      wrap.prepend(a);
-    }
-    return;
-  }
+  // Strip the <html>/<head>/<body> wrapper from buildReportHTML so we can
+  // insert our own complete shell with the green print bar
+  const bodyContent = reportHtml
+    .replace(/^[\s\S]*?<div class="page-wrap">/, '<div class="page-wrap">')
+    .replace(/<\/body>[\s\S]*$/, '');
 
-  // Desktop & Android: inject a hidden iframe, write HTML into it, call print()
-  // This requires zero pop-up permissions and works in file:// and blob:// contexts
-  const frameId = '__pdf_print_frame__';
-  let frame = document.getElementById(frameId);
-  if (frame) frame.remove();
+  const fullHtml = '<!DOCTYPE html>\n' +
+'<html>\n' +
+'<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<title>Match Report</title>\n' +
+'<style>\n' +
+'  body { font-family: Calibri, Arial, sans-serif; font-size: 10pt; color: #222; margin: 0; padding: 0; }\n' +
+'  .page-wrap { padding: 20px 30px; }\n' +
+'  table { border-collapse: collapse; }\n' +
+'  @page { size: A4 landscape; margin: 1.5cm 2cm; }\n' +
+'  @media screen {\n' +
+'    #pbar { position:fixed; top:0; left:0; right:0; z-index:9999;\n' +
+'            background:#1a7a3c; color:white; padding:10px 20px;\n' +
+'            font-family:Arial,sans-serif; font-size:14px;\n' +
+'            display:flex; align-items:center; gap:16px; flex-wrap:wrap; }\n' +
+'    #pbar button { background:white; color:#1a7a3c; border:none;\n' +
+'                   padding:7px 20px; border-radius:6px; font-size:14px;\n' +
+'                   font-weight:bold; cursor:pointer; }\n' +
+'    #pbar .tip { font-size:12px; color:rgba(255,255,255,0.85); }\n' +
+'    body { padding-top: 52px; }\n' +
+'  }\n' +
+'  @media print {\n' +
+'    #pbar { display:none !important; }\n' +
+'    body { padding-top: 0; }\n' +
+'    @page { size: A4 landscape; margin: 1.5cm 2cm; }\n' +
+'  }\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div id="pbar">\n' +
+'  <span>⚽ Match Performance Report</span>\n' +
+'  <button onclick="window.print()">🖨 Print / Save as PDF</button>\n' +
+'  <span class="tip">In the print dialog → Destination: Save as PDF → Landscape</span>\n' +
+'</div>\n' +
+bodyContent + '\n' +
+'</body></html>';
 
-  frame = document.createElement('iframe');
-  frame.id = frameId;
-  frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-  document.body.appendChild(frame);
-
-  // Write the HTML into the iframe's document
-  const fdoc = frame.contentDocument || frame.contentWindow.document;
-  fdoc.open();
-  fdoc.write(html);
-  fdoc.close();
-
-  // Wait for iframe content to fully load, then print
-  frame.onload = () => {
-    try {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-    } catch(e) {
-      // Fallback: blob URL download as HTML (user opens and prints manually)
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = 'match-report-print.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      alert('Open the downloaded file in your browser and press Ctrl+P / Cmd+P to print as PDF.');
-    }
-    // Clean up iframe after a delay (after print dialog closes)
-    setTimeout(() => { if (frame.parentNode) frame.remove(); }, 60000);
-  };
-
-  // Safety fallback if onload doesn't fire (some browsers skip it for document.write)
-  setTimeout(() => {
-    const fw = frame.contentWindow;
-    if (fw && !fw.closed) {
-      try { fw.focus(); fw.print(); } catch(e) {}
-    }
-  }, 800);
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  platformDownload(blob, 'match-player-report.html');
 }
 
 // ============================================================
