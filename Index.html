@@ -1,0 +1,2825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1b0f">
+<title>⚽ Soccer Time Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --green: #1a7a3c;
+    --green-light: #22a04f;
+    --green-dark: #0f4d25;
+    --pitch: #2d9e58;
+    --pitch-alt: #2a9154;
+    --white: #f5f5f0;
+    --cream: #ede8dc;
+    --gold: #f0b429;
+    --red: #e63946;
+    --dark: #0d1b0f;
+    --bench: #1c2e1f;
+    --text-muted: #7a9e80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .label-title { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+  /* ========== HEADER ========== */
+  header {
+    background: linear-gradient(135deg, var(--green-dark) 0%, var(--dark) 100%);
+    border-bottom: 2px solid var(--green);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header h1 { font-size: 2.2rem; color: var(--gold); }
+  header span { color: var(--text-muted); font-size: 0.9rem; margin-left: auto; }
+
+  /* ========== TABS ========== */
+  .tabs {
+    display: flex;
+    background: #111;
+    border-bottom: 2px solid #1e3a22;
+  }
+  .tab {
+    padding: 14px 28px;
+    cursor: pointer;
+    font-family: 'Bebas Neue';
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab .badge {
+    background: var(--green);
+    color: white;
+    font-family: 'DM Sans';
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ========== PANELS ========== */
+  .panel { display: none; padding: 28px 32px; }
+  .panel.active { display: block; }
+
+  /* ========== ROSTER PANEL ========== */
+  .roster-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 900px;
+  }
+  .card {
+    background: #141f16;
+    border: 1px solid #1e3a22;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h3 { font-size: 1.3rem; color: var(--gold); margin-bottom: 16px; }
+  .input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  input[type="text"] {
+    flex: 1;
+    background: #0d1b0f;
+    border: 1px solid #2a4a2e;
+    color: var(--white);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans';
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus { border-color: var(--green-light); }
+  input[type="text"]::placeholder { color: #3a5a3e; }
+
+  btn, .btn {
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-family: 'Bebas Neue';
+    letter-spacing: 0.08em;
+    border-radius: 8px;
+    transition: all 0.18s;
+  }
+  .btn-green {
+    background: var(--green);
+    color: white;
+    padding: 10px 18px;
+    font-size: 1rem;
+  }
+  .btn-green:hover { background: var(--green-light); transform: translateY(-1px); }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--dark);
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+  .btn-gold:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-red {
+    background: var(--red);
+    color: white;
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+  .btn-red:hover { opacity: 0.85; }
+  .btn-sm {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    border-radius: 5px;
+    background: #1e3a22;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: 1px solid #2a4a2e;
+    font-family: 'DM Sans';
+    transition: all 0.2s;
+  }
+  .btn-sm:hover { background: var(--red); color: white; border-color: var(--red); }
+
+  .player-list { max-height: 280px; overflow-y: auto; }
+  .player-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #0d1b0f;
+    border: 1px solid #1a3020;
+    font-size: 0.9rem;
+  }
+  .player-item .num { color: var(--gold); font-weight: 600; width: 26px; }
+
+  /* ========== FORMATION / FIELD PANEL ========== */
+  .formation-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .soccer-field {
+    background: var(--pitch);
+    border-radius: 10px;
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 340 / 500;   /* height auto-follows width */
+    height: auto;
+    border: 3px solid #1a6a33;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* Field markings */
+  .field-marking {
+    position: absolute;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+  }
+  .center-circle {
+    width: 90px; height: 90px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .center-dot {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .halfway-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: rgba(255,255,255,0.25);
+    top: 50%;
+  }
+  .penalty-box-top {
+    position: absolute;
+    width: 60%; height: 18%;
+    top: 0; left: 20%;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-top: none;
+  }
+  .penalty-box-bot {
+    position: absolute;
+    width: 60%; height: 18%;
+    bottom: 0; left: 20%;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-bottom: none;
+  }
+  .goal-top {
+    position: absolute;
+    width: 28%; height: 4%;
+    top: 0; left: 36%;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top: none;
+    background: rgba(255,255,255,0.07);
+  }
+  .goal-bot {
+    position: absolute;
+    width: 28%; height: 4%;
+    bottom: 0; left: 36%;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-bottom: none;
+    background: rgba(255,255,255,0.07);
+  }
+
+  /* Alternating stripes */
+  .field-stripe {
+    position: absolute;
+    width: 100%;
+    height: 50px;
+    background: rgba(0,0,0,0.06);
+  }
+
+  .field-player {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10;
+  }
+  .field-player .player-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1a3fa8;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: center;
+    color: white;
+    line-height: 1.1;
+    transition: all 0.2s;
+  }
+  .field-player .player-dot.gk { background: #d4a017; }
+  .field-player .player-dot.empty {
+    background: rgba(255,255,255,0.1);
+    border: 2px dashed rgba(255,255,255,0.4);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.75rem;
+  }
+  .field-player .player-label {
+    margin-top: 3px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    max-width: 60px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .field-player .player-role {
+    font-size: 0.5rem;
+    color: rgba(255,255,255,0.75);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  .formation-right { }
+  .select-section h3 { font-family: 'Bebas Neue'; font-size: 1.3rem; color: var(--gold); margin-bottom: 12px; }
+
+  select {
+    background: #0d1b0f;
+    border: 1px solid #2a4a2e;
+    color: var(--white);
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans';
+    font-size: 0.9rem;
+    outline: none;
+    width: 100%;
+    cursor: pointer;
+  }
+  select option { background: #0d1b0f; }
+
+  .slot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .slot-card {
+    background: #0d1b0f;
+    border: 1px solid #1e3a22;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slot-card .slot-role { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .slot-card .slot-name { font-size: 0.85rem; color: var(--white); font-weight: 500; }
+  .slot-card .slot-icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: #1a3fa8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    color: white;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .slot-card .slot-icon.gk { background: #d4a017; }
+  .slot-card .slot-icon.empty { background: #1e3a22; color: var(--text-muted); }
+
+  /* ========== GAME PANEL ========== */
+  .game-layout {
+    display: grid;
+    grid-template-columns: 1fr minmax(0, 300px);
+    gap: 20px;
+  }
+
+  .timer-display {
+    text-align: center;
+    padding: 20px;
+    background: #0d1b0f;
+    border-radius: 12px;
+    border: 1px solid #1e3a22;
+    margin-bottom: 20px;
+  }
+  .timer-display .time {
+    font-family: 'Bebas Neue';
+    font-size: 4.5rem;
+    color: var(--gold);
+    line-height: 1;
+    letter-spacing: 0.05em;
+  }
+  .timer-display .period {
+    font-family: 'Bebas Neue';
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .timer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .timer-controls button {
+    font-family: 'Bebas Neue';
+    letter-spacing: 0.08em;
+    font-size: 1rem;
+    padding: 11px 22px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #btn-start { background: var(--green); color: white; }
+  #btn-start:hover { background: var(--green-light); }
+  #btn-halftime { background: var(--gold); color: var(--dark); }
+  #btn-halftime:hover { opacity: 0.85; }
+  #btn-resume { background: var(--green); color: white; display: none; }
+  #btn-resume:hover { background: var(--green-light); }
+  #btn-end { background: var(--red); color: white; }
+  #btn-end:hover { opacity: 0.85; }
+
+  .game-players-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .game-player-card {
+    background: #0d1b0f;
+    border: 1px solid #1e3a22;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .game-player-card:hover { border-color: var(--gold); }
+  .game-player-card .gpc-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #1a3fa8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .game-player-card .gpc-icon.gk { background: #d4a017; }
+  .game-player-card .gpc-icon.bench { background: #1e3a22; }
+  .game-player-card .gpc-name { font-size: 0.85rem; font-weight: 500; }
+  .game-player-card .gpc-role { font-size: 0.65rem; color: var(--text-muted); }
+  .game-player-card .gpc-time { margin-left: auto; font-size: 0.75rem; font-family: 'Bebas Neue'; color: var(--gold); }
+  .game-player-card.bench-card { opacity: 0.7; }
+  .game-player-card.bench-card .gpc-icon { background: #1a3020; }
+  .section-title {
+    font-family: 'Bebas Neue';
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin: 16px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1e3a22;
+  }
+
+  /* Sub log */
+  .sub-log {
+    background: #0d1b0f;
+    border: 1px solid #1e3a22;
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .sub-log h3 { font-family: 'Bebas Neue'; font-size: 1.2rem; color: var(--gold); margin-bottom: 12px; }
+  .log-list { max-height: 400px; overflow-y: auto; }
+  .log-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a3020;
+    font-size: 0.82rem;
+    align-items: flex-start;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-time { color: var(--gold); font-family: 'Bebas Neue'; font-size: 1rem; min-width: 48px; }
+  .log-real-time { color: #4a6a4e; font-size: 0.68rem; font-family: 'DM Sans'; min-width: 56px; display: block; margin-top: 1px; }
+  .log-in { color: #4ade80; }
+  .log-out { color: var(--red); }
+  .log-halftime { color: var(--gold); font-style: italic; }
+  .log-icon { font-size: 1rem; }
+
+  /* ========== MODAL ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #141f16;
+    border: 1px solid #2a4a2e;
+    border-radius: 14px;
+    padding: 28px;
+    width: 420px;
+    max-width: 95vw;
+  }
+  .modal h2 { font-size: 1.6rem; color: var(--gold); margin-bottom: 18px; }
+  .modal label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; margin-top: 12px; }
+  .modal .btn-row { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* ========== REPORT PANEL ========== */
+  .report-table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--green-dark);
+    color: var(--gold);
+    font-family: 'Bebas Neue';
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    padding: 11px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--green);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #1a3020;
+    color: var(--white);
+  }
+  tr:hover td { background: #0d1b0f; }
+  .status-field { color: #4ade80; font-weight: 600; }
+  .status-bench { color: var(--text-muted); }
+
+  /* ========== IMPORT ZONE ========== */
+  .import-zone {
+    border: 2px dashed #2a4a2e;
+    border-radius: 10px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #0a160c;
+    position: relative;
+  }
+  .import-zone:hover, .import-zone.drag-over {
+    border-color: var(--green-light);
+    background: #0f2214;
+  }
+  /* file input is now a tiny invisible element outside the zone; label triggers it */
+  #import-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .import-zone .import-icon { font-size: 1.8rem; margin-bottom: 6px; }
+  .import-zone .import-label { font-size: 0.85rem; color: var(--text-muted); }
+  .import-zone .import-label strong { color: var(--green-light); }
+  .import-zone .import-formats { font-size: 0.72rem; color: #3a5a3e; margin-top: 4px; }
+
+  .import-feedback {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    display: none;
+  }
+  .import-feedback.success { background: #0f3a1a; border: 1px solid #1a6a33; color: #4ade80; }
+  .import-feedback.error   { background: #3a0f0f; border: 1px solid #6a1a1a; color: #f87171; }
+  .import-feedback.warn    { background: #2a2209; border: 1px solid #6a5a1a; color: var(--gold); }
+
+  .column-picker {
+    margin-top: 12px;
+    display: none;
+  }
+  .column-picker label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .column-picker select { margin-bottom: 8px; }
+
+  .preset-btn {
+    background: #0d1b0f;
+    border: 1px solid #2a4a2e;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-family: 'DM Sans';
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { background: var(--green-dark); color: var(--white); border-color: var(--green); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0d1b0f; }
+  ::-webkit-scrollbar-thumb { background: #2a4a2e; border-radius: 3px; }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px;
+    font-size: 0.9rem;
+  }
+
+  .halftime-banner {
+    background: var(--gold);
+    color: var(--dark);
+    text-align: center;
+    padding: 10px;
+    font-family: 'Bebas Neue';
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    display: none;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .pause-banner {
+    background: #e67e22;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-family: 'Bebas Neue';
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    display: none;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  #btn-sub      { background: #1a4fa8; color: white; }
+  #btn-sub:hover { background: #2260cc; }
+  #btn-reposition { background: #5b3fa8; color: white; }
+  #btn-reposition:hover { background: #7050d0; }
+  #btn-pause    { background: #e67e22; color: white; }
+  #btn-pause:hover { background: #f39c12; }
+  #btn-unpause  { background: var(--green); color: white; }
+  #btn-unpause:hover { background: var(--green-light); }
+
+  /* ========== iOS / MOBILE FIXES ========== */
+
+  /* Allow zoom (viewport has no maximum-scale) but prevent iOS auto-zoom on inputs */
+  input[type="text"], select, textarea { font-size: 16px !important; }
+
+  /* Remove iOS tap highlight */
+  * { -webkit-tap-highlight-color: transparent; }
+
+  /* Touch active states */
+  .btn-green:active  { background: var(--green-dark) !important; transform: scale(0.97); }
+  .btn-gold:active   { opacity: 0.75 !important; transform: scale(0.97); }
+  .btn-red:active    { opacity: 0.75 !important; transform: scale(0.97); }
+  .preset-btn:active { background: var(--green-dark) !important; color: var(--white) !important; }
+  .timer-controls button:active { opacity: 0.75; transform: scale(0.96); }
+  .tab:active        { color: var(--gold); }
+
+  /* 44pt minimum touch targets */
+  .tab              { min-height: 44px; display: flex; align-items: center; }
+  .btn-green, .btn-gold, .btn-red { min-height: 44px; }
+  .preset-btn       { min-height: 36px; padding: 6px 12px; }
+  .timer-controls button { min-height: 44px; }
+  .player-item      { min-height: 44px; }
+  .game-player-card { min-height: 52px; }
+  .slot-card        { min-height: 52px; }
+
+  /* ── Game live-field layout ── */
+  .game-live-field-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    flex-wrap: nowrap;
+  }
+  .game-live-field-col {
+    flex: 0 0 auto;
+    width: clamp(130px, 28vw, 220px);
+  }
+  #game-soccer-field {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 220 / 330 !important;
+  }
+  .game-live-players-col {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* ========== TABLET — 768px ========== */
+  @media (max-width: 768px) {
+    .panel { padding: 16px; }
+    header { padding: 12px 16px; }
+    header h1 { font-size: 1.5rem; }
+    header span { display: none; }
+
+    /* Roster */
+    .roster-grid { grid-template-columns: 1fr !important; max-width: 100% !important; }
+
+    /* Formation: stack field + assignments */
+    .formation-layout { grid-template-columns: 1fr; }
+    .soccer-field { max-width: 100%; margin: 0 auto; display: block; }
+
+    /* Game: stack game col + log col */
+    .game-layout { grid-template-columns: 1fr; }
+    .game-players-grid { grid-template-columns: 1fr 1fr; }
+
+    /* Slot grid */
+    .slot-grid { grid-template-columns: 1fr !important; }
+
+    /* Modals */
+    .modal { width: 92vw !important; max-width: 92vw !important; padding: 20px 16px; }
+
+    /* Timer */
+    .timer-display .time { font-size: 3.2rem; }
+    #real-time-display   { font-size: 2rem !important; }
+    .timer-controls { flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .timer-controls button {
+      font-size: 0.85rem; padding: 10px 14px;
+      flex: 1 1 auto; min-width: 100px; max-width: 160px;
+    }
+
+    /* Log */
+    .sub-log { margin-top: 16px; }
+    .log-list { max-height: 260px; }
+
+    /* Report */
+    .report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { font-size: 0.8rem; }
+    th, td { padding: 6px 8px; }
+  }
+
+  /* ========== PHONE — 480px ========== */
+  @media (max-width: 480px) {
+    .panel { padding: 10px 8px; }
+
+    .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+    .tab  { padding: 12px 14px; font-size: 0.95rem; flex-shrink: 0; }
+    header h1 { font-size: 1.3rem; }
+
+    /* All grids → single column */
+    .game-players-grid { grid-template-columns: 1fr; }
+    .roster-grid       { grid-template-columns: 1fr !important; }
+
+    /* Formation field: taller ratio on small phones */
+    .soccer-field { aspect-ratio: 340 / 440; }
+
+    /* Game live field: stack vertically on phones */
+    .game-live-field-wrap { flex-direction: column; gap: 10px; }
+    .game-live-field-col  { width: 100% !important; max-width: 100% !important; }
+    #game-soccer-field    { aspect-ratio: 220 / 330 !important; }   /* keep portrait ratio */
+    .game-live-players-col { width: 100%; }
+
+    /* Player dots scale */
+    .field-player .player-dot  { width: 28px; height: 28px; font-size: 0.5rem; }
+    .field-player .player-label { font-size: 0.48rem; max-width: 44px; }
+
+    /* Timer */
+    .timer-display { padding: 12px 8px; }
+    .timer-display .time { font-size: 2.6rem; }
+    #real-time-display   { font-size: 1.6rem !important; }
+    .clock-divider { display: none !important; }
+    .timer-controls button { font-size: 0.8rem; padding: 10px; min-width: 72px; }
+
+    /* Modals: stack all repo/sub grids */
+    #repo-second-section,
+    #repo-third-section  { grid-template-columns: 1fr !important; }
+
+    /* Cards */
+    .card { padding: 12px 10px; }
+    .import-zone { padding: 14px 8px; }
+
+    /* Log */
+    .log-item { font-size: 0.78rem; }
+    .log-time  { font-size: 0.9rem; min-width: 40px; }
+
+    /* Slot cards */
+    .slot-card { padding: 8px; gap: 8px; }
+    .slot-icon { width: 26px; height: 26px; font-size: 0.55rem; flex-shrink: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span>⚽</span>
+  <h1>Soccer Time Tracker</h1>
+  <span id="header-status">Set up your roster to begin</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="roster">1. Roster <span class="badge" id="roster-badge">0</span></div>
+  <div class="tab" data-tab="formation">2. Formation</div>
+  <div class="tab" data-tab="game">3. Game</div>
+  <div class="tab" data-tab="report">4. Report</div>
+</div>
+
+<!-- ===== ROSTER PANEL ===== -->
+<div class="panel active" id="tab-roster">
+  <div class="roster-grid" style="grid-template-columns:1fr 1fr 1fr; max-width:1100px;">
+
+    <!-- Manual add -->
+    <div class="card">
+      <h3>Add Player Manually</h3>
+      <div class="input-row">
+        <input type="text" id="player-name-input" placeholder="Player name..." maxlength="30">
+        <button class="btn btn-green" onclick="addPlayer()">ADD</button>
+      </div>
+      <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:10px;">You need at least 10 players (9 starters + GK)</p>
+      <div class="player-list" id="player-list"></div>
+    </div>
+
+    <!-- Import from file -->
+    <div class="card">
+      <h3>Import from File</h3>
+      <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+        Drop a <strong style="color:var(--white)">.csv</strong> or <strong style="color:var(--white)">.xlsx</strong> file with player names.
+        One name per row — or choose which column to use.
+      </p>
+
+            <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" onchange="importFileSelected(event)" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+      <div class="import-zone" id="import-zone"
+           ondragover="importDragOver(event)" ondragleave="importDragLeave(event)" ondrop="importDrop(event)"
+           onclick="document.getElementById('import-file-input').click()">
+        <div class="import-icon">📂</div>
+        <div class="import-label"><strong>Tap / Click to browse</strong> or drag &amp; drop</div>
+        <div class="import-formats">Accepts .csv · .xlsx · .xls</div>
+        <label for="import-file-input"
+               onclick="event.stopPropagation();"
+               style="display:inline-block;margin-top:12px;padding:10px 28px;background:#1a7a3c;
+                      color:white;border-radius:8px;font-size:0.95rem;font-weight:600;
+                      cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          📁 Choose File
+        </label>
+      </div>
+
+      <!-- Column picker shown after file is parsed -->
+      <div class="column-picker" id="column-picker">
+        <label>Which column contains player names?</label>
+        <select id="column-select"></select>
+        <label>Skip first row? (if it's a header)</label>
+        <select id="skip-header-select">
+          <option value="1">Yes — first row is a header</option>
+          <option value="0">No — first row is a player</option>
+        </select>
+        <button class="btn btn-green" style="width:100%; margin-top:4px;" onclick="confirmImport()">IMPORT PLAYERS</button>
+      </div>
+
+      <div class="import-feedback" id="import-feedback"></div>
+
+      <!-- Template download -->
+      <div style="margin-top:14px; text-align:center;">
+        <button class="btn btn-sm" style="font-size:0.78rem; padding:6px 14px;" onclick="downloadTemplate()">⬇ Download CSV Template</button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="card">
+      <h3>Instructions</h3>
+      <ol style="padding-left:18px; color:var(--text-muted); font-size:0.88rem; line-height:1.9;">
+        <li>Add players manually <em>or</em> import a file</li>
+        <li>Go to <strong style="color:var(--white)">Formation</strong> tab to assign positions</li>
+        <li>Head to <strong style="color:var(--white)">Game</strong> tab to start tracking</li>
+        <li>Click players during the game to make substitutions</li>
+        <li>Generate your Excel report when the game ends</li>
+      </ol>
+      <div style="margin-top:16px; padding:12px; background:#0a160c; border-radius:8px; font-size:0.8rem; color:var(--text-muted);">
+        💡 <strong style="color:var(--white)">CSV tip:</strong> Your file just needs one column of names. Headers are optional. Extra columns are ignored.
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-gold" onclick="goToTab('formation')" style="width:100%">GO TO FORMATION →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== FORMATION PANEL ===== -->
+<div class="panel" id="tab-formation">
+  <div class="formation-layout">
+
+    <!-- Left: Soccer field visual -->
+    <div>
+      <div class="soccer-field" id="soccer-field">
+        <div style="position:absolute;width:100%;height:100%;background:repeating-linear-gradient(to bottom, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 50px, transparent 50px, transparent 100px);"></div>
+        <div class="halfway-line"></div>
+        <div class="center-circle field-marking"></div>
+        <div class="center-dot"></div>
+        <div class="penalty-box-top"></div>
+        <div class="penalty-box-bot"></div>
+        <div class="goal-top"></div>
+        <div class="goal-bot"></div>
+      </div>
+      <p style="font-size:0.72rem; color:var(--text-muted); margin-top:8px; text-align:center;">Players appear on field as you assign them</p>
+    </div>
+
+    <!-- Right: position manager -->
+    <div class="formation-right">
+
+      <!-- Add new position -->
+      <div class="card" style="margin-bottom:16px;">
+        <h3>Positions</h3>
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+          Add positions then assign a player to each one. You can create any position name you need.
+        </p>
+        <div class="input-row" style="margin-bottom:8px;">
+          <input type="text" id="new-position-input" placeholder="e.g. Goalkeeper, Striker..." maxlength="30">
+          <button class="btn btn-green" onclick="addPosition()">ADD</button>
+        </div>
+        <!-- Quick-add presets -->
+        <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:4px;">
+          <span style="font-size:0.72rem; color:var(--text-muted); width:100%; margin-bottom:2px;">Quick add:</span>
+          <button class="preset-btn" onclick="quickAdd('Goalkeeper')">GK</button>
+          <button class="preset-btn" onclick="quickAdd('Striker')">ST</button>
+          <button class="preset-btn" onclick="quickAdd('Center Back')">CB</button>
+          <button class="preset-btn" onclick="quickAdd('Left Back')">LB</button>
+          <button class="preset-btn" onclick="quickAdd('Right Back')">RB</button>
+          <button class="preset-btn" onclick="quickAdd('Center Mid')">CM</button>
+          <button class="preset-btn" onclick="quickAdd('Left Wing')">LW</button>
+          <button class="preset-btn" onclick="quickAdd('Right Wing')">RW</button>
+          <button class="preset-btn" onclick="quickAdd('Center Left')">CL</button>
+          <button class="preset-btn" onclick="quickAdd('Center Right')">CR</button>
+        </div>
+      </div>
+
+      <!-- Position list -->
+      <div class="card" style="margin-bottom:16px;">
+        <div id="slot-assignments">
+          <div class="empty-state" style="padding:16px;">No positions added yet. Add one above.</div>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="confirmFormation()" style="width:100%; font-size:1.1rem; padding:13px;">CONFIRM FORMATION →</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== GAME PANEL ===== -->
+<div class="panel" id="tab-game">
+  <div class="game-layout">
+    <div>
+      <div class="halftime-banner" id="halftime-banner">⚽ HALF TIME ⚽</div>
+      <div class="pause-banner" id="pause-banner">⏸ PAUSED</div>
+      <div id="duplicate-banner" style="display:none;background:#1a4fa8;color:white;text-align:center;
+           padding:10px;font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:0.08em;
+           margin-bottom:16px;border-radius:8px;"></div>
+
+      <div class="timer-display">
+        <div class="period" id="period-label">FIRST HALF</div>
+        <div style="display:flex; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.7rem; color:var(--text-muted); letter-spacing:0.12em; font-family:'Bebas Neue'; margin-bottom:2px;">GAME TIME</div>
+            <div class="time" id="timer-display">00:00</div>
+          </div>
+          <div class="clock-divider" style="width:1px; height:60px; background:#1e3a22;"></div>
+          <div>
+            <div style="font-size:0.7rem; color:var(--text-muted); letter-spacing:0.12em; font-family:'Bebas Neue'; margin-bottom:2px;">REAL TIME</div>
+            <div class="time" id="real-time-display" style="font-size:2.8rem; color:var(--text-muted);">--:--:--</div>
+          </div>
+        </div>
+        <div class="timer-controls">
+          <button id="btn-start"    onclick="startGame()">▶ START GAME</button>
+          <button id="btn-sub"      onclick="openSubModal()"          style="display:none">🔄 SUB</button>
+          <button id="btn-reposition" onclick="openRepositionModal()" style="display:none">↔ REPOSITION</button>
+          <button id="btn-pause"    onclick="pauseGame()"             style="display:none">⏸ PAUSE</button>
+          <button id="btn-unpause"  onclick="unpauseGame()"           style="display:none">▶ RESUME</button>
+          <button id="btn-halftime" onclick="triggerHalftime()"       style="display:none">⏱ HALF TIME</button>
+          <button id="btn-resume"   onclick="resumeGame()"            style="display:none">▶ 2ND HALF</button>
+          <button id="btn-end"      onclick="endGame()"               style="display:none">🛑 END GAME</button>
+        </div>
+      </div>
+
+      <!-- Live field view -->
+      <div class="game-live-field-wrap">
+        <div class="game-live-field-col">
+          <div class="soccer-field" id="game-soccer-field" style="pointer-events:none;">
+            <div style="position:absolute;width:100%;height:100%;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 50px,transparent 50px,transparent 100px);"></div>
+            <div class="halfway-line"></div>
+            <div class="center-circle field-marking"></div>
+            <div class="center-dot"></div>
+            <div class="penalty-box-top"></div>
+            <div class="penalty-box-bot"></div>
+            <div class="goal-top"></div>
+            <div class="goal-bot"></div>
+          </div>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-align:center;">Live positions</p>
+        </div>
+        <div class="game-live-players-col">
+          <div class="section-title" style="margin-top:0;">🟢 ON FIELD <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;">Tap a player to sub</span></div>
+          <div class="game-players-grid" id="field-players-ui"></div>
+          <div class="section-title">🪑 ON BENCH</div>
+          <div class="game-players-grid" id="bench-players-ui"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sub-log">
+        <h3>📋 Match Log</h3>
+        <div class="log-list" id="log-list">
+          <div class="empty-state">No events yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPORT PANEL ===== -->
+<div class="panel" id="tab-report">
+  <div style="display:flex; gap:14px; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
+    <h2 style="font-size:1.8rem; color:var(--gold);">MATCH REPORT</h2>
+    <button class="btn btn-green" onclick="exportExcel()" style="margin-left:auto;">⬇ EXPORT EXCEL</button>
+    <button class="btn btn-gold" onclick="exportWordReport()">📄 EXPORT WORD</button>
+    <button class="btn" onclick="exportPDFReport()" style="background:#c0392b;color:white;min-height:44px;padding:10px 18px;font-size:1rem;">📥 EXPORT PDF</button>
+  </div>
+  <div class="report-table-wrap" id="report-table-wrap">
+    <div class="empty-state">Complete a game to see the report here.</div>
+  </div>
+</div>
+
+<!-- ===== SUB MODAL ===== -->
+<div class="modal-overlay" id="sub-modal">
+  <div class="modal" style="width:520px;max-height:90vh;overflow-y:auto;">
+    <h2>🔄 SUBSTITUTION</h2>
+    <p style="color:var(--text-muted);font-size:0.83rem;margin-bottom:14px;">Select who comes off, who comes on, and the role. Add up to 4 simultaneous subs.</p>
+
+    <!-- Sub 1 (always visible) -->
+    <div style="background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 1</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-1"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-1"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-1"></select>
+    </div>
+
+    <!-- Sub 2 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-2" onchange="toggleSubSlot(2,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 2nd substitution
+    </label>
+    <div id="sub-slot-2" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 2</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-2"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-2"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-2"></select>
+    </div>
+
+    <!-- Sub 3 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-3" onchange="toggleSubSlot(3,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 3rd substitution
+    </label>
+    <div id="sub-slot-3" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:8px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 3</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-3"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-3"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-3"></select>
+    </div>
+
+    <!-- Sub 4 -->
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;font-size:0.85rem;">
+      <input type="checkbox" id="sub-add-4" onchange="toggleSubSlot(4,this.checked)" style="width:15px;height:15px;accent-color:var(--green);">
+      Add a 4th substitution
+    </label>
+    <div id="sub-slot-4" style="display:none;background:#0a160c;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:0.75rem;color:var(--gold);font-weight:700;margin-bottom:8px;">SUB 4</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:var(--red)">OFF</span></label>
+          <select id="sub-out-4"></select>
+        </div>
+        <div>
+          <label style="font-size:0.78rem;">Coming <span style="color:#4ade80">ON</span></label>
+          <select id="sub-in-4"></select>
+        </div>
+      </div>
+      <label style="font-size:0.78rem;margin-top:8px;">Role for incoming player</label>
+      <select id="sub-role-4"></select>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-sm" style="padding:8px 16px;font-size:0.9rem;" onclick="closeModal('sub-modal')">CANCEL</button>
+      <button class="btn btn-gold" onclick="confirmSub()">CONFIRM SUB</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAUSE MODAL (reason) ===== -->
+<div class="modal-overlay" id="pause-modal">
+  <div class="modal">
+    <h2>⏸ PAUSE TIMER</h2>
+    <label>Reason (optional)</label>
+    <select id="pause-reason-select">
+      <option value="Injury">🏥 Injury</option>
+      <option value="Penalty">🟥 Penalty / VAR</option>
+      <option value="Time Wasting">⌛ Time Wasting</option>
+      <option value="Other">📋 Other</option>
+    </select>
+    <div class="btn-row">
+      <button class="btn btn-sm" style="padding:8px 16px;font-size:0.9rem;" onclick="closeModal('pause-modal')">CANCEL</button>
+      <button class="btn btn-gold" onclick="confirmPause()">PAUSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPOSITION MODAL ===== -->
+<div class="modal-overlay" id="reposition-modal">
+  <div class="modal" style="width:500px;">
+    <h2>↔ REPOSITION PLAYERS</h2>
+    <p style="color:var(--text-muted);font-size:0.83rem;margin-bottom:16px;">
+      Swap two field players' roles, or move one player to a different role. Multiple players can temporarily share a role.
+    </p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label>Player A</label>
+        <select id="repo-player-a"></select>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);">Current role: <span id="repo-role-a" style="color:var(--gold)">—</span></div>
+      </div>
+      <div>
+        <label>New role for Player A</label>
+        <select id="repo-new-role-a"></select>
+      </div>
+    </div>
+
+    <div style="margin:16px 0;border-top:1px solid #1e3a22;"></div>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+      <input type="checkbox" id="repo-two-players" onchange="toggleRepoSecond(this.checked)" style="width:16px;height:16px;accent-color:var(--green);">
+      <span style="font-size:0.88rem;">Also reposition a second player</span>
+    </label>
+
+    <div id="repo-second-section" style="display:none;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:8px;">
+      <div>
+        <label>Player B</label>
+        <select id="repo-player-b"></select>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);">Current role: <span id="repo-role-b" style="color:var(--gold)">—</span></div>
+      </div>
+      <div>
+        <label>New role for Player B</label>
+        <select id="repo-new-role-b"></select>
+      </div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;">
+      <input type="checkbox" id="repo-three-players" onchange="toggleRepoThird(this.checked)" style="width:16px;height:16px;accent-color:var(--green);">
+      <span style="font-size:0.88rem;">Also reposition a third player</span>
+    </label>
+
+    <div id="repo-third-section" style="display:none;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label>Player C</label>
+        <select id="repo-player-c"></select>
+        <div style="margin-top:6px;font-size:0.78rem;color:var(--text-muted);">Current role: <span id="repo-role-c" style="color:var(--gold)">—</span></div>
+      </div>
+      <div>
+        <label>New role for Player C</label>
+        <select id="repo-new-role-c"></select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-sm" style="padding:8px 16px;font-size:0.9rem;" onclick="closeModal('reposition-modal')">CANCEL</button>
+      <button class="btn btn-green" onclick="confirmReposition()">APPLY REPOSITION</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== POSITION ASSIGN MODAL ===== -->
+<div class="modal-overlay" id="assign-modal">
+  <div class="modal">
+    <h2 id="assign-modal-title">Assign Player</h2>
+    <p id="assign-modal-role" style="color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;"></p>
+    <label>Select Player</label>
+    <select id="assign-player-select"></select>
+    <div class="btn-row">
+      <button class="btn btn-sm" style="padding:8px 16px; font-size:0.9rem;" onclick="closeModal('assign-modal')">CANCEL</button>
+      <button class="btn btn-gold" onclick="confirmAssign()">ASSIGN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== END GAME MODAL ===== -->
+<div class="modal-overlay" id="end-modal">
+  <div class="modal">
+    <h2>END GAME</h2>
+    <p style="color:var(--text-muted); margin-bottom:16px;">Are you sure the game is over? The timer will stop and the report will be generated.</p>
+    <div class="btn-row">
+      <button class="btn btn-sm" style="padding:8px 16px; font-size:0.9rem;" onclick="closeModal('end-modal')">CANCEL</button>
+      <button class="btn btn-red" onclick="confirmEndGame()">YES, END GAME</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let players = [];       // {id, name}
+let fieldSlots = [];    // {role, playerId|null, fieldX, fieldY}  — fully user-driven
+let gameStarted = false;
+let gamePaused = false;
+let gameOver = false;
+let isHalftime = false;
+let timerInterval = null;
+let gameStartTime = null;
+let elapsedBeforePause = 0;
+let period = 1;
+
+let playerState = {};
+let subQueue = { outId: null, inId: null, newRole: null };
+let halftimeElapsed = 0;   // game-clock ms at end of first half
+let halftimeBreakStart = 0; // wall-clock ms when halftime whistle blew
+let halftimeBreakMs = 0;    // actual break duration in wall-clock ms (excluded from all reports)
+let realClockInterval = null;
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => goToTab(t.dataset.tab));
+});
+function goToTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'formation') renderFormationPanel();
+  if (name === 'game') renderGamePanel();
+  if (name === 'report') renderReport();
+}
+
+// ============================================================
+// ROSTER
+// ============================================================
+document.getElementById('player-name-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+
+function addPlayer() {
+  const inp = document.getElementById('player-name-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  if (players.find(p => p.name.toLowerCase() === name.toLowerCase())) { alert('Player already exists!'); return; }
+  players.push({ id: Date.now(), name });
+  inp.value = '';
+  renderRoster();
+}
+
+function removePlayer(id) {
+  players = players.filter(p => String(p.id) !== String(id));
+  fieldSlots = fieldSlots.map(s => ({ ...s, playerId: String(s.playerId) === String(id) ? null : s.playerId }));
+  renderRoster();
+}
+
+function renderRoster() {
+  const list = document.getElementById('player-list');
+  document.getElementById('roster-badge').textContent = players.length;
+  if (!players.length) { list.innerHTML = '<div class="empty-state" style="padding:20px">No players yet</div>'; return; }
+  list.innerHTML = players.map((p, i) => `
+    <div class="player-item">
+      <span class="num">${i+1}</span>
+      <span>${p.name}</span>
+      <button class="btn-sm" onclick="removePlayer(${p.id})">✕</button>
+    </div>`).join('');
+}
+
+// ============================================================
+// FORMATION — fully user-driven, no fixed positions required
+// ============================================================
+
+// Auto-placement coordinates for known role names
+const PRESET_POS = {
+  'goalkeeper':    {x:50,y:90}, 'gk':{x:50,y:90},
+  'center back':   {x:50,y:76}, 'cb':{x:50,y:76},
+  'left back':     {x:22,y:76}, 'lb':{x:22,y:76},
+  'right back':    {x:78,y:76}, 'rb':{x:78,y:76},
+  'center mid':    {x:50,y:57}, 'cm':{x:50,y:57},
+  'center left':   {x:28,y:54}, 'cl':{x:28,y:54},
+  'center right':  {x:72,y:54}, 'cr':{x:72,y:54},
+  'left wing':     {x:15,y:35}, 'lw':{x:15,y:35},
+  'right wing':    {x:85,y:35}, 'rw':{x:85,y:35},
+  'striker':       {x:50,y:20}, 'st':{x:50,y:20},
+  'attacking mid': {x:50,y:38},
+  'defensive mid': {x:50,y:68},
+  'left mid':      {x:20,y:50},
+  'right mid':     {x:80,y:50},
+};
+
+// Fallback grid positions for unknown roles
+const FALLBACK_GRID = [
+  {x:50,y:45},{x:30,y:45},{x:70,y:45},
+  {x:50,y:30},{x:25,y:60},{x:75,y:60},
+  {x:35,y:30},{x:65,y:30},{x:20,y:45},{x:80,y:45},
+];
+
+let currentAssigningRole = null;
+
+function getFieldPos(role) {
+  const key = role.toLowerCase().trim();
+  if (PRESET_POS[key]) return { ...PRESET_POS[key] };
+  // Try partial match
+  for (const [k, v] of Object.entries(PRESET_POS)) {
+    if (key.includes(k) || k.includes(key)) return { ...v };
+  }
+  // Fallback: use next available grid spot not already taken
+  const usedCoords = fieldSlots.map(s => `${s.fieldX},${s.fieldY}`);
+  for (const pos of FALLBACK_GRID) {
+    if (!usedCoords.includes(`${pos.x},${pos.y}`)) return { ...pos };
+  }
+  return { x: 50, y: 50 };
+}
+
+function addPosition() {
+  const inp = document.getElementById('new-position-input');
+  const role = inp.value.trim();
+  if (!role) return;
+  if (fieldSlots.find(s => s.role.toLowerCase() === role.toLowerCase())) {
+    alert(`"${role}" already exists!`); return;
+  }
+  const pos = getFieldPos(role);
+  fieldSlots.push({ role, playerId: null, fieldX: pos.x, fieldY: pos.y });
+  inp.value = '';
+  renderSoccerField();
+  renderSlotAssignments();
+}
+
+function quickAdd(role) {
+  if (fieldSlots.find(s => s.role.toLowerCase() === role.toLowerCase())) {
+    alert(`"${role}" is already added.`); return;
+  }
+  const pos = getFieldPos(role);
+  fieldSlots.push({ role, playerId: null, fieldX: pos.x, fieldY: pos.y });
+  renderSoccerField();
+  renderSlotAssignments();
+}
+
+document.getElementById('new-position-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addPosition();
+});
+
+function removePosition(role) {
+  fieldSlots = fieldSlots.filter(s => s.role !== role);
+  renderSoccerField();
+  renderSlotAssignments();
+}
+
+function renderFormationPanel() {
+  renderSoccerField();
+  renderSlotAssignments();
+}
+
+function renderSoccerField() {
+  const field = document.getElementById('soccer-field');
+  field.querySelectorAll('.field-player').forEach(e => e.remove());
+  fieldSlots.forEach(slot => {
+    const player = slot.playerId ? players.find(p => String(p.id) === String(slot.playerId)) : null;
+    const div = document.createElement('div');
+    div.className = 'field-player';
+    div.style.left = slot.fieldX + '%';
+    div.style.top  = slot.fieldY + '%';
+    const isGK = slot.role.toLowerCase().includes('goal');
+    div.innerHTML = `
+      <div class="player-dot ${isGK?'gk':''} ${player?'':'empty'}">
+        ${player ? initials(player.name) : '+'}
+      </div>
+      <div class="player-label">${player ? player.name : slot.role}</div>
+      ${player ? `<div class="player-role">${slot.role}</div>` : ''}
+    `;
+    div.onclick = () => openAssignModal(slot.role);
+    field.appendChild(div);
+  });
+}
+
+function renderSlotAssignments() {
+  const container = document.getElementById('slot-assignments');
+  if (!fieldSlots.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:16px;">No positions added yet.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="slot-grid">' + fieldSlots.map(slot => {
+    const player = slot.playerId ? players.find(p => String(p.id) === String(slot.playerId)) : null;
+    const isGK = slot.role.toLowerCase().includes('goal');
+    const safeRole = slot.role.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `
+      <div class="slot-card">
+        <div class="slot-icon ${isGK?'gk':''} ${player?'':'empty'}" onclick="openAssignModal('${safeRole}')" style="cursor:pointer">
+          ${player ? initials(player.name) : '?'}
+        </div>
+        <div style="flex:1;cursor:pointer;" onclick="openAssignModal('${safeRole}')">
+          <div class="slot-role">${slot.role}</div>
+          <div class="slot-name">${player ? player.name : '<span style="color:var(--text-muted)">Unassigned</span>'}</div>
+        </div>
+        <button class="btn-sm" style="flex-shrink:0;" onclick="removePosition('${safeRole}')">✕</button>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+function openAssignModal(role) {
+  currentAssigningRole = role;
+  document.getElementById('assign-modal-title').textContent = 'Assign · ' + role;
+  document.getElementById('assign-modal-role').textContent = 'Who plays ' + role + '?';
+  const sel = document.getElementById('assign-player-select');
+  const currentSlot = fieldSlots.find(s => s.role === role);
+  sel.innerHTML = '<option value="">— Leave unassigned —</option>' +
+    players.map(p => {
+      const elsewhere = fieldSlots.find(s => s.role !== role && String(s.playerId) === String(p.id));
+      const label = elsewhere ? `${p.name}  (already: ${elsewhere.role})` : p.name;
+      const selected = currentSlot && String(currentSlot.playerId) === String(p.id) ? 'selected' : '';
+      return `<option value="${p.id}" ${selected}>${label}</option>`;
+    }).join('');
+  document.getElementById('assign-modal').classList.add('open');
+}
+
+function confirmAssign() {
+  const rawVal = document.getElementById('assign-player-select').value;
+  const playerId = rawVal || null;
+  const role = currentAssigningRole;
+
+  // Move player out of any other slot they were in
+  if (playerId) {
+    fieldSlots.forEach(s => {
+      if (s.role !== role && String(s.playerId) === String(playerId)) s.playerId = null;
+    });
+  }
+  const slot = fieldSlots.find(s => s.role === role);
+  if (slot) slot.playerId = playerId;
+
+  closeModal('assign-modal');
+  renderSoccerField();
+  renderSlotAssignments();
+}
+
+function confirmFormation() {
+  if (!fieldSlots.length) {
+    alert('Please add at least one position first.'); return;
+  }
+  const assigned = fieldSlots.filter(s => s.playerId);
+  if (!assigned.length) {
+    alert('Please assign at least one player to a position before starting.'); return;
+  }
+  goToTab('game');
+}
+
+// ============================================================
+// GAME
+// ============================================================
+function initPlayerState() {
+  playerState = {};
+  players.forEach(p => {
+    const slot = fieldSlots.find(s => String(s.playerId) === String(p.id));
+    playerState[p.id] = {
+      currentRole: slot ? slot.role : null,
+      segments: [],
+      subCount: 0,
+      repositionCount: 0
+    };
+    if (slot) {
+      playerState[p.id].segments.push({ role: slot.role, start_ms: 0, end_ms: null, period: 1 });
+    }
+  });
+}
+
+function renderGamePanel() {
+  if (!gameStarted) {
+    // Show pre-game lineup
+    renderGamePlayers();
+  } else {
+    renderGamePlayers();
+  }
+}
+
+function renderGameField() {
+  const field = document.getElementById('game-soccer-field');
+  if (!field) return;
+  field.querySelectorAll('.field-player').forEach(e => e.remove());
+
+  const elapsed = getElapsed();
+
+  // Build a role→coords lookup from fieldSlots (exact match only, no fuzzy)
+  const roleCoords = {};
+  fieldSlots.forEach(s => { roleCoords[s.role] = { x: s.fieldX, y: s.fieldY }; });
+
+  // Stable fallback positions for roles not in fieldSlots (e.g. after reposition to new role)
+  // Uses a deterministic grid so the same role always lands in the same spot
+  const FALLBACK = [
+    {x:50,y:20},{x:20,y:35},{x:80,y:35},{x:35,y:50},{x:65,y:50},
+    {x:50,y:57},{x:22,y:65},{x:78,y:65},{x:35,y:76},{x:65,y:76},{x:50,y:88}
+  ];
+  const fallbackCache = {}; // role → coords, assigned on first encounter
+  let fallbackIdx = 0;
+  function getCoordsForRole(role) {
+    if (roleCoords[role]) return roleCoords[role];
+    if (fallbackCache[role]) return fallbackCache[role];
+    // Assign next available fallback slot
+    const pos = FALLBACK[fallbackIdx % FALLBACK.length];
+    fallbackIdx++;
+    fallbackCache[role] = pos;
+    return pos;
+  }
+
+  // Iterate live playerState — always reflects current subs/repositions
+  players.forEach(player => {
+    const state = playerState[player.id];
+    if (!state || !state.currentRole) return; // bench players don't appear on field
+
+    const currentRole = state.currentRole;
+    const coords = getCoordsForRole(currentRole);
+
+    const div = document.createElement('div');
+    div.className = 'field-player';
+    div.style.left = coords.x + '%';
+    div.style.top  = coords.y + '%';
+    div.style.pointerEvents = 'none';
+
+    const isGK = currentRole.toLowerCase().includes('goal');
+    const fieldTime = gameStarted ? formatMs(playerTimeOnField(String(player.id), elapsed)) : '';
+
+    div.innerHTML = `
+      <div class="player-dot ${isGK ? 'gk' : ''}" style="width:28px;height:28px;font-size:0.5rem;border-width:2px;">
+        ${initials(player.name)}
+      </div>
+      <div class="player-label" style="font-size:0.48rem;max-width:44px;">${player.name}</div>
+      ${gameStarted ? `<div class="player-role" style="font-size:0.42rem;color:rgba(255,255,255,0.7);">${fieldTime}</div>` : ''}
+    `;
+    field.appendChild(div);
+  });
+}
+
+function renderGamePlayers() {
+  const fieldUI = document.getElementById('field-players-ui');
+  const benchUI = document.getElementById('bench-players-ui');
+  const elapsed = getElapsed();
+
+  const fieldPlayers = players.filter(p => playerState[p.id]?.currentRole);
+  const benchPlayers = players.filter(p => !playerState[p.id]?.currentRole);
+
+  fieldUI.innerHTML = fieldPlayers.map(p => {
+    const role = playerState[p.id].currentRole;
+    const isGK = role.toLowerCase().includes('goal');
+    const t = gameStarted ? formatMs(playerTimeOnField(p.id, elapsed)) : '--:--';
+    return `<div class="game-player-card" onclick="clickFieldPlayer(${p.id})">
+      <div class="gpc-icon ${isGK ? 'gk' : ''}">${initials(p.name)}</div>
+      <div><div class="gpc-name">${p.name}</div><div class="gpc-role">${role}</div></div>
+      <div class="gpc-time">${t}</div>
+    </div>`;
+  }).join('') || '<div class="empty-state">No players on field</div>';
+
+  benchUI.innerHTML = benchPlayers.map(p => {
+    const t = gameStarted ? formatMs(playerTimeOnBench(p.id, elapsed)) : '--:--';
+    return `<div class="game-player-card bench-card" onclick="clickBenchPlayer(${p.id})">
+      <div class="gpc-icon bench">🪑</div>
+      <div><div class="gpc-name">${p.name}</div><div class="gpc-role">Bench</div></div>
+      <div class="gpc-time">${t}</div>
+    </div>`;
+  }).join('') || '<div class="empty-state">No players on bench</div>';
+
+  // Update the live game field view
+  renderGameField();
+}
+
+// ============================================================
+// TIMER
+// ============================================================
+function startGame() {
+  const filled = fieldSlots.filter(s => s.playerId);
+  if (!filled.length) { alert('Please assign at least one player to a position first!'); goToTab('formation'); return; }
+
+  initPlayerState();
+  gameStarted = true;
+  gamePaused = false;
+  period = 1;
+  elapsedBeforePause = 0;
+  halftimeElapsed = 0;
+  halftimeBreakMs = 0;
+  halftimeBreakStart = 0;
+  gameStartTime = Date.now();
+
+  document.getElementById('btn-start').style.display       = 'none';
+  document.getElementById('btn-sub').style.display         = 'inline-block';
+  document.getElementById('btn-reposition').style.display  = 'inline-block';
+  document.getElementById('btn-pause').style.display       = 'inline-block';
+  document.getElementById('btn-halftime').style.display    = 'inline-block';
+  document.getElementById('btn-end').style.display         = 'inline-block';
+  document.getElementById('period-label').textContent   = 'FIRST HALF';
+
+  addLog('start', null, null, 0);
+  startTimer();
+}
+
+function getRealTimeStr() {
+  const now = new Date();
+  return now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function startRealClock() {
+  clearInterval(realClockInterval);
+  document.getElementById('real-time-display').textContent = getRealTimeStr();
+  realClockInterval = setInterval(() => {
+    document.getElementById('real-time-display').textContent = getRealTimeStr();
+  }, 1000);
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  startRealClock();
+  timerInterval = setInterval(() => {
+    const elapsed = getElapsed();
+    document.getElementById('timer-display').textContent = formatMs(elapsed);
+    renderGamePlayers();
+  }, 1000);
+}
+
+function getElapsed() {
+  if (!gameStarted) return 0;
+  if (gamePaused) return elapsedBeforePause;
+  return elapsedBeforePause + (Date.now() - gameStartTime);
+}
+
+function triggerHalftime() {
+  const elapsed = getElapsed();
+  gamePaused = true;
+  elapsedBeforePause = elapsed;
+  halftimeElapsed = elapsed;   // snapshot for H1/H2 split
+  clearInterval(timerInterval);
+  isHalftime = true;
+
+  players.forEach(p => {
+    const state = playerState[p.id];
+    const lastSeg = state.segments[state.segments.length - 1];
+    if (lastSeg && lastSeg.end_ms === null) lastSeg.end_ms = elapsed;
+  });
+
+  document.getElementById('halftime-banner').style.display = 'block';
+  document.getElementById('pause-banner').style.display    = 'none';
+  // Keep SUB and REPOSITION available during halftime
+  document.getElementById('btn-sub').style.display         = 'inline-block';
+  document.getElementById('btn-reposition').style.display  = 'inline-block';
+  document.getElementById('btn-pause').style.display       = 'none';
+  document.getElementById('btn-unpause').style.display     = 'none';
+  document.getElementById('btn-halftime').style.display    = 'none';
+  document.getElementById('btn-resume').style.display      = 'inline-block';
+  document.getElementById('period-label').textContent      = 'HALF TIME';
+  halftimeBreakStart = Date.now(); // start measuring the break
+  addLog('halftime', null, null, elapsed);
+  startRealClock();
+  renderGamePlayers();
+}
+
+function resumeGame() {
+  isHalftime = false;
+  gamePaused = false;
+  period = 2;
+  // Measure the actual wall-clock break so we can exclude it from all time reports
+  if (halftimeBreakStart > 0) {
+    halftimeBreakMs = Date.now() - halftimeBreakStart;
+  }
+  gameStartTime = Date.now();
+
+  const elapsed = elapsedBeforePause;
+  players.forEach(p => {
+    const state = playerState[p.id];
+    if (!state.currentRole) return; // bench player — no segment needed
+    const lastSeg = state.segments[state.segments.length - 1];
+    if (lastSeg && lastSeg.end_ms === null) {
+      // Segment already open (e.g. from a halftime sub) — just mark it as H2
+      lastSeg.period = 2;
+    } else {
+      // Segment was closed at halftime — open a fresh H2 segment
+      state.segments.push({ role: state.currentRole, start_ms: elapsed, end_ms: null, period: 2 });
+    }
+  });
+
+  document.getElementById('halftime-banner').style.display = 'none';
+  document.getElementById('btn-resume').style.display      = 'none';
+  document.getElementById('btn-sub').style.display         = 'inline-block';
+  document.getElementById('btn-reposition').style.display  = 'inline-block';
+  document.getElementById('btn-pause').style.display       = 'inline-block';
+  document.getElementById('btn-end').style.display         = 'inline-block';
+  document.getElementById('period-label').textContent      = 'SECOND HALF';
+  addLog('resume', null, null, elapsed);
+  startTimer();
+}
+
+function endGame() {
+  document.getElementById('end-modal').classList.add('open');
+}
+
+function confirmEndGame() {
+  closeModal('end-modal');
+  const elapsed = getElapsed();
+  clearInterval(timerInterval);
+  gamePaused = true;
+  elapsedBeforePause = elapsed;
+  gameOver = true;
+
+  players.forEach(p => {
+    const state = playerState[p.id];
+    const lastSeg = state.segments[state.segments.length - 1];
+    if (lastSeg && lastSeg.end_ms === null) lastSeg.end_ms = elapsed;
+  });
+
+  addLog('end', null, null, elapsed);
+  document.getElementById('period-label').textContent      = 'FULL TIME';
+  document.getElementById('btn-sub').style.display         = 'none';
+  document.getElementById('btn-reposition').style.display  = 'none';
+  document.getElementById('btn-pause').style.display       = 'none';
+  document.getElementById('btn-unpause').style.display     = 'none';
+  document.getElementById('btn-halftime').style.display    = 'none';
+  document.getElementById('btn-end').style.display         = 'none';
+  document.getElementById('btn-resume').style.display      = 'none';
+
+  alert('🎉 Game ended! Check the Report tab for full statistics.');
+  goToTab('report');
+}
+
+// ============================================================
+// PAUSE / UNPAUSE
+// ============================================================
+function pauseGame() {
+  document.getElementById('pause-modal').classList.add('open');
+}
+
+function confirmPause() {
+  const reason = document.getElementById('pause-reason-select').value;
+  closeModal('pause-modal');
+
+  const elapsed = getElapsed();
+  gamePaused = true;
+  elapsedBeforePause = elapsed;
+  clearInterval(timerInterval);
+
+  document.getElementById('pause-banner').style.display  = 'block';
+  document.getElementById('btn-pause').style.display     = 'none';
+  document.getElementById('btn-unpause').style.display   = 'inline-block';
+
+  addLog('pause', null, null, elapsed, reason);
+  renderGamePlayers();
+}
+
+function unpauseGame() {
+  gamePaused = false;
+  gameStartTime = Date.now();
+
+  document.getElementById('pause-banner').style.display  = 'none';
+  document.getElementById('btn-unpause').style.display   = 'none';
+  document.getElementById('btn-pause').style.display     = 'inline-block';
+
+  addLog('unpause', null, null, elapsedBeforePause);
+  startTimer();
+}
+
+// ============================================================
+// SUBSTITUTION
+// ============================================================
+function openSubModal() {
+  if (!gameStarted) { alert('Start the game first.'); return; }
+
+  const fieldPlayers = players.filter(p => playerState[p.id]?.currentRole);
+  const benchPlayers = players.filter(p => !playerState[p.id]?.currentRole);
+
+  if (!fieldPlayers.length) { alert('No players on field!'); return; }
+  if (!benchPlayers.length) { alert('No players on the bench!'); return; }
+
+  const fieldOpts = fieldPlayers.map(p => `<option value="${p.id}">${p.name} — ${playerState[p.id].currentRole}</option>`).join('');
+  const benchOpts = benchPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  const allRoles = [...new Set([
+    ...fieldSlots.map(s => s.role),
+    ...Object.values(playerState).flatMap(s => s.segments.map(sg => sg.role))
+  ])].filter(Boolean);
+  const roleOpts = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+
+  // Populate all 4 slot dropdowns and wire role auto-select
+  [1,2,3,4].forEach(n => {
+    document.getElementById(`sub-out-${n}`).innerHTML  = fieldOpts;
+    document.getElementById(`sub-in-${n}`).innerHTML   = benchOpts;
+    document.getElementById(`sub-role-${n}`).innerHTML = roleOpts;
+    const outSel  = document.getElementById(`sub-out-${n}`);
+    const roleSel = document.getElementById(`sub-role-${n}`);
+    outSel.onchange = () => {
+      const cr = playerState[outSel.value]?.currentRole;
+      if (cr) roleSel.value = cr;
+    };
+    outSel.dispatchEvent(new Event('change'));
+  });
+
+  // Reset extra slots to hidden
+  [2,3,4].forEach(n => {
+    document.getElementById(`sub-add-${n}`).checked = false;
+    document.getElementById(`sub-slot-${n}`).style.display = 'none';
+  });
+
+  document.getElementById('sub-modal').classList.add('open');
+}
+
+function toggleSubSlot(n, show) {
+  if (show && n > 2 && !document.getElementById(`sub-add-${n-1}`).checked) {
+    alert(`Please add sub ${n-1} first.`);
+    document.getElementById(`sub-add-${n}`).checked = false;
+    return;
+  }
+  document.getElementById(`sub-slot-${n}`).style.display = show ? 'block' : 'none';
+  if (!show) {
+    for (let i = n+1; i <= 4; i++) {
+      document.getElementById(`sub-add-${i}`).checked = false;
+      document.getElementById(`sub-slot-${i}`).style.display = 'none';
+    }
+  }
+}
+
+// Also allow clicking a field player card to pre-fill the sub modal
+function clickFieldPlayer(id) {
+  if (!gameStarted) return;
+  openSubModal();
+  setTimeout(() => {
+    const outSel = document.getElementById('sub-out-1');
+    if (outSel) { outSel.value = id; outSel.dispatchEvent(new Event('change')); }
+  }, 50);
+}
+
+function clickBenchPlayer(id) {
+  if (!gameStarted) return;
+  openSubModal();
+  setTimeout(() => {
+    const inSel = document.getElementById('sub-in-1');
+    if (inSel) inSel.value = id;
+  }, 50);
+}
+
+function applySingleSub(outId, inId, newRole, elapsed) {
+  if (!outId || !inId || !newRole) return false;
+  if (String(outId) === String(inId)) { alert('A player cannot substitute themselves.'); return false; }
+  const outState = playerState[outId];
+  if (!outState) return false;
+  const lastOutSeg = outState.segments[outState.segments.length - 1];
+  if (lastOutSeg && lastOutSeg.end_ms === null) lastOutSeg.end_ms = elapsed;
+  outState.currentRole = null;
+  outState.subCount++;
+  const inState = playerState[inId];
+  if (!inState) return false;
+  const lastInSeg = inState.segments[inState.segments.length - 1];
+  if (lastInSeg && lastInSeg.end_ms === null) lastInSeg.end_ms = elapsed;
+  inState.currentRole = newRole;
+  inState.segments.push({ role: newRole, start_ms: elapsed, end_ms: null, period });
+  inState.subCount++;
+  addLog('sub', outId, inId, elapsed, newRole);
+  return true;
+}
+
+function confirmSub() {
+  const elapsed = getElapsed();
+  const usedOut = new Set();
+  const usedIn  = new Set();
+  let anyDone   = false;
+
+  for (let n = 1; n <= 4; n++) {
+    // Slot 1 is always active; slots 2-4 only if checkbox checked
+    if (n > 1 && !document.getElementById(`sub-add-${n}`).checked) continue;
+
+    const outId   = document.getElementById(`sub-out-${n}`).value;
+    const inId    = document.getElementById(`sub-in-${n}`).value;
+    const newRole = document.getElementById(`sub-role-${n}`).value;
+
+    if (!outId || !inId || !newRole) { alert(`Sub ${n}: please fill all fields.`); return; }
+    if (usedOut.has(outId)) { alert(`Sub ${n}: player going OFF was already used in an earlier sub.`); return; }
+    if (usedIn.has(inId))   { alert(`Sub ${n}: player coming ON was already used in an earlier sub.`); return; }
+
+    if (applySingleSub(outId, inId, newRole, elapsed)) {
+      usedOut.add(outId);
+      usedIn.add(inId);
+      anyDone = true;
+    }
+  }
+
+  if (anyDone) {
+    closeModal('sub-modal');
+    renderGamePlayers();
+  }
+}
+
+// ============================================================
+// REPOSITION
+// ============================================================
+function openRepositionModal() {
+  if (!gameStarted) { alert('Start the game first.'); return; }
+  // Allow during halftime and pauses
+
+  const fieldPlayers = players.filter(p => playerState[p.id]?.currentRole);
+  if (fieldPlayers.length < 1) { alert('No field players to reposition.'); return; }
+
+  const allRoles = [...new Set([
+    ...fieldSlots.map(s => s.role),
+    ...Object.values(playerState).flatMap(s => s.segments.map(sg => sg.role))
+  ])].filter(Boolean);
+
+  const playerOpts = fieldPlayers.map(p =>
+    `<option value="${p.id}">${p.name} (${playerState[p.id].currentRole})</option>`).join('');
+  const roleOpts   = allRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+
+  document.getElementById('repo-player-a').innerHTML    = playerOpts;
+  document.getElementById('repo-new-role-a').innerHTML  = roleOpts;
+  document.getElementById('repo-player-b').innerHTML    = playerOpts;
+  document.getElementById('repo-new-role-b').innerHTML  = roleOpts;
+  document.getElementById('repo-player-c').innerHTML    = playerOpts;
+  document.getElementById('repo-new-role-c').innerHTML  = roleOpts;
+
+  // Update role labels when selection changes
+  const updateLabel = (selId, labelId) => {
+    const sel = document.getElementById(selId);
+    const lbl = document.getElementById(labelId);
+    sel.onchange = () => { lbl.textContent = playerState[sel.value]?.currentRole || '—'; };
+    sel.dispatchEvent(new Event('change'));
+  };
+  updateLabel('repo-player-a', 'repo-role-a');
+  updateLabel('repo-player-b', 'repo-role-b');
+  updateLabel('repo-player-c', 'repo-role-c');
+
+  // Pre-set new role dropdowns to each player's current role
+  const syncRole = (playerSelId, roleSelId) => {
+    const pSel = document.getElementById(playerSelId);
+    const rSel = document.getElementById(roleSelId);
+    const sync = () => { const cr = playerState[pSel.value]?.currentRole; if (cr) rSel.value = cr; };
+    pSel.addEventListener('change', sync);
+    sync();
+  };
+  syncRole('repo-player-a', 'repo-new-role-a');
+  syncRole('repo-player-b', 'repo-new-role-b');
+  syncRole('repo-player-c', 'repo-new-role-c');
+
+  // Reset checkboxes
+  const cb = document.getElementById('repo-two-players');
+  cb.checked = false;
+  document.getElementById('repo-second-section').style.display = 'none';
+  const cb3 = document.getElementById('repo-three-players');
+  cb3.checked = false;
+  document.getElementById('repo-third-section').style.display = 'none';
+
+  document.getElementById('reposition-modal').classList.add('open');
+}
+
+function toggleRepoSecond(show) {
+  document.getElementById('repo-second-section').style.display = show ? 'grid' : 'none';
+  // If hiding second player, also hide third
+  if (!show) {
+    document.getElementById('repo-three-players').checked = false;
+    document.getElementById('repo-third-section').style.display = 'none';
+  }
+}
+
+function toggleRepoThird(show) {
+  // Can only enable third if second is enabled
+  if (show && !document.getElementById('repo-two-players').checked) {
+    alert('Please enable the second player first.');
+    document.getElementById('repo-three-players').checked = false;
+    return;
+  }
+  document.getElementById('repo-third-section').style.display = show ? 'grid' : 'none';
+}
+
+function confirmReposition() {
+  const elapsed = getElapsed();
+  const aId     = document.getElementById('repo-player-a').value;
+  const aRole   = document.getElementById('repo-new-role-a').value;
+  const doTwo   = document.getElementById('repo-two-players').checked;
+
+  applyReposition(aId, aRole, elapsed);
+
+  if (doTwo) {
+    const bId   = document.getElementById('repo-player-b').value;
+    const bRole = document.getElementById('repo-new-role-b').value;
+    if (String(bId) === String(aId)) { alert('Player B must be different from Player A.'); return; }
+    applyReposition(bId, bRole, elapsed);
+
+    const doThree = document.getElementById('repo-three-players').checked;
+    if (doThree) {
+      const cId   = document.getElementById('repo-player-c').value;
+      const cRole = document.getElementById('repo-new-role-c').value;
+      if (String(cId) === String(aId) || String(cId) === String(bId)) {
+        alert('Player C must be different from Players A and B.'); return;
+      }
+      applyReposition(cId, cRole, elapsed);
+    }
+  }
+
+  closeModal('reposition-modal');
+  renderGamePlayers();
+  scheduleDuplicateCheck(); // start 30s countdown once after all repositions applied
+}
+
+function applyReposition(playerId, newRole, elapsed) {
+  const state = playerState[playerId];
+  if (!state) return;
+  if (!state.currentRole) {
+    const pName = players.find(p => String(p.id) === String(playerId))?.name || '?';
+    alert(pName + ' is not currently on the field.');
+    return;
+  }
+  if (state.currentRole === newRole) return; // no change needed
+
+  // Close current open segment
+  const lastSeg = state.segments[state.segments.length - 1];
+  if (lastSeg && lastSeg.end_ms === null) lastSeg.end_ms = elapsed;
+
+  // Open new segment with new role, tagged with current period
+  state.currentRole = newRole;
+  state.segments.push({ role: newRole, start_ms: elapsed, end_ms: null, period });
+  state.repositionCount = (state.repositionCount || 0) + 1;
+
+  addLog('reposition', playerId, null, elapsed, newRole);
+}
+
+let _dupBannerTimer = null;
+function scheduleDuplicateCheck() {
+  clearTimeout(_dupBannerTimer);
+  _dupBannerTimer = setTimeout(() => {
+    const banner = document.getElementById('duplicate-banner');
+    if (!banner) return;
+
+    // Count how many field players share each role
+    const roleCounts = {};
+    players.forEach(p => {
+      const role = playerState[p.id]?.currentRole;
+      if (role) roleCounts[role] = (roleCounts[role] || 0) + 1;
+    });
+    const dupes = Object.entries(roleCounts).filter(([,c]) => c > 1);
+
+    if (dupes.length) {
+      const msg = dupes.map(([r,c]) => `${c}x ${r}`).join('  |  ');
+      banner.textContent = '⚠ DUPLICATE POSITIONS: ' + msg;
+      banner.style.display = 'block';
+      // Auto-hide after 15 seconds
+      setTimeout(() => { banner.style.display = 'none'; }, 15000);
+    } else {
+      banner.style.display = 'none';
+    }
+  }, 30000); // show 30 seconds after the reposition
+}
+
+// ============================================================
+// LOG
+// ============================================================
+function addLog(type, outId, inId, ms, role) {
+  const list = document.getElementById('log-list');
+  const timeStr = formatMs(ms);
+  const realStr = getRealTimeStr();
+  const timeBlock = `<span class="log-time">${timeStr}</span><span class="log-real-time">${realStr}</span>`;
+  let html = '';
+
+  if (type === 'start') {
+    html = `<div class="log-item">${timeBlock}<span class="log-halftime">⚡ KICK OFF</span></div>`;
+  } else if (type === 'halftime') {
+    html = `<div class="log-item">${timeBlock}<span class="log-halftime">⏸ HALF TIME</span></div>`;
+  } else if (type === 'resume') {
+    html = `<div class="log-item">${timeBlock}<span class="log-halftime">▶ 2ND HALF</span></div>`;
+  } else if (type === 'end') {
+    html = `<div class="log-item">${timeBlock}<span class="log-halftime">🏁 FULL TIME</span></div>`;
+  } else if (type === 'pause') {
+    html = `<div class="log-item">${timeBlock}<span style="color:#e67e22;">⏸ PAUSED — ${role}</span></div>`;
+  } else if (type === 'unpause') {
+    html = `<div class="log-item">${timeBlock}<span style="color:#4ade80;">▶ RESUMED</span></div>`;
+  } else if (type === 'sub') {
+    const outName = players.find(p => String(p.id) === String(outId))?.name || '?';
+    const inName  = players.find(p => String(p.id) === String(inId))?.name  || '?';
+    html = `<div class="log-item">
+      <div style="display:flex;flex-direction:column;">${timeBlock}</div>
+      <div>
+        <div class="log-out">▼ ${outName}</div>
+        <div class="log-in">▲ ${inName} (${role})</div>
+      </div>
+    </div>`;
+  } else if (type === 'reposition') {
+    const pName = players.find(p => String(p.id) === String(outId))?.name || '?';
+    html = `<div class="log-item">${timeBlock}<span style="color:#60a5fa;">↔ ${pName} → ${role}</span></div>`;
+  }
+
+  if (list.querySelector('.empty-state')) list.innerHTML = '';
+  list.insertAdjacentHTML('beforeend', html);
+  list.scrollTop = list.scrollHeight;
+}
+
+// ============================================================
+// PLAYER TIME CALCULATIONS
+// ============================================================
+function playerTimeOnField(id, elapsed) {
+  const segs = playerState[id].segments;
+  return segs.reduce((acc, seg) => {
+    const end = seg.end_ms !== null ? seg.end_ms : elapsed;
+    return acc + (end - seg.start_ms);
+  }, 0);
+}
+
+function playerTimeOnBench(id, elapsed) {
+  return elapsed - playerTimeOnField(id, elapsed);
+}
+
+// ============================================================
+// REPORT
+// ============================================================
+function renderReport() {
+  const wrap = document.getElementById('report-table-wrap');
+  if (!gameStarted) { wrap.innerHTML = '<div class="empty-state">No game data yet. Start a game first.</div>'; return; }
+
+  const elapsed = getElapsed();
+  const reportData = buildReportData(elapsed);
+
+  let html = `<table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Role(s) Played</th>
+        <th>Total Field Time</th>
+        <th>1st Half</th>
+        <th>2nd Half</th>
+        <th>Bench Time</th>
+        <th>Subs</th>
+        <th>Repositions</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${reportData.map(row => `
+        <tr>
+          <td><strong>${row.name}</strong></td>
+          <td>${row.roles}</td>
+          <td>${row.fieldTime}</td>
+          <td>${row.h1Time}</td>
+          <td>${row.h2Time}</td>
+          <td>${row.benchTime}</td>
+          <td>${row.subs}</td>
+          <td>${row.repositions}</td>
+          <td class="${row.onField ? 'status-field' : 'status-bench'}">${row.onField ? '🟢 Field' : '🪑 Bench'}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+
+  wrap.innerHTML = html;
+}
+
+function buildReportData(elapsed) {
+  return players.map(p => {
+    const state = playerState[p.id] || { segments: [], subCount: 0, repositionCount: 0, currentRole: null };
+
+    // Total field time — segments are pure game-clock time, no break included
+    const fieldMs = playerTimeOnField(p.id, elapsed);
+    const benchMs = Math.max(0, elapsed - fieldMs);
+
+    // H1 / H2 split — htMs is game-clock boundary set at halftime whistle
+    const htMs = halftimeElapsed || elapsed; // if no halftime yet, all is H1
+    let h1Ms = 0, h2Ms = 0;
+    state.segments.forEach(seg => {
+      const segStart = seg.start_ms;
+      const segEnd   = seg.end_ms !== null ? seg.end_ms : elapsed;
+      // H1 portion: overlap with [0, htMs]
+      const h1Start = Math.min(segStart, htMs);
+      const h1End   = Math.min(segEnd,   htMs);
+      if (h1End > h1Start) h1Ms += h1End - h1Start;
+      // H2 portion: overlap of segment with [htMs, elapsed]
+      const h2Start = Math.max(segStart, htMs);
+      const h2End   = Math.min(segEnd,   elapsed);   // cap at game end, not pushed up to htMs
+      if (h2End > h2Start) h2Ms += h2End - h2Start;
+    });
+
+    // Roles consolidated
+    const roleMap = {};
+    state.segments.forEach(seg => {
+      const duration = (seg.end_ms !== null ? seg.end_ms : elapsed) - seg.start_ms;
+      if (duration > 0) roleMap[seg.role] = (roleMap[seg.role] || 0) + duration;
+    });
+    const rolesStr = Object.entries(roleMap).map(([r, ms]) => `${r} (${formatMs(ms)})`).join(', ') || 'Bench only';
+
+    return {
+      name: p.name,
+      roles: rolesStr,
+      fieldTime: formatMs(fieldMs),
+      h1Time: formatMs(h1Ms),
+      h2Time: formatMs(h2Ms),
+      benchTime: formatMs(benchMs),
+      subs: state.subCount,
+      repositions: state.repositionCount || 0,
+      onField: !!state.currentRole,
+      _fieldMs: fieldMs,
+      _benchMs: benchMs,
+      _roleMap: roleMap,
+      _segments: state.segments,
+    };
+  }).sort((a, b) => b._fieldMs - a._fieldMs);
+}
+
+// ============================================================
+// EXCEL EXPORT
+// ============================================================
+function exportExcel() {
+  if (!gameStarted) { alert('No game data to export!'); return; }
+  const elapsed = getElapsed();
+  const wb = XLSX.utils.book_new();
+
+  // Summary sheet
+  const summaryData = [
+    ['Player', 'Role(s) Played', 'Total Field Time', '1st Half Time', '2nd Half Time', 'Bench Time', 'Substitutions', 'Repositions', 'Final Status']
+  ];
+  buildReportData(elapsed).forEach(row => {
+    summaryData.push([row.name, row.roles, row.fieldTime, row.h1Time, row.h2Time, row.benchTime, row.subs, row.repositions, row.onField ? 'Field' : 'Bench']);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws1['!cols'] = [20,40,16,14,14,14,14,12,12].map(w => ({wch: w}));
+  XLSX.utils.book_append_sheet(wb, ws1, 'Match Summary');
+
+  // Detailed segments sheet
+  const detailData = [['Player', 'Period', 'Role', 'Segment Start', 'Segment End', 'Duration']];
+  players.forEach(p => {
+    const state = playerState[p.id] || { segments: [] };
+    state.segments.forEach(seg => {
+      const end = seg.end_ms !== null ? seg.end_ms : elapsed;
+      detailData.push([p.name, seg.period === 2 ? '2nd Half' : '1st Half', seg.role, formatMs(seg.start_ms), formatMs(end), formatMs(end - seg.start_ms)]);
+    });
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(detailData);
+  ws2['!cols'] = [20,12,20,14,14,14].map(w => ({wch: w}));
+  XLSX.utils.book_append_sheet(wb, ws2, 'Detailed Segments');
+
+  // iOS-aware download
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    // Convert workbook to array buffer and share as a File
+    const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob    = new Blob([wbArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const file    = new File([blob], 'soccer-match-report.xlsx', { type: blob.type });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Match Report' })
+        .catch(() => {
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+        });
+    } else {
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    }
+  } else {
+    XLSX.writeFile(wb, 'soccer-match-report.xlsx');
+  }
+}
+
+// ============================================================
+// SHARED REPORT HTML BUILDER
+// ============================================================
+function buildReportHTML(elapsed, forPDF = false) {
+  const reportData  = buildReportData(elapsed);
+  const gameDate    = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const h1Fmt       = formatMs(halftimeElapsed);
+  const h2Fmt       = formatMs(Math.max(0, elapsed - halftimeElapsed));
+  const totalFmt    = formatMs(elapsed);
+
+  // ── helpers ────────────────────────────────────────────────
+  const esc = s => String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const bullet = text =>
+    `<p style="margin:3pt 0 3pt 20pt;font-size:11pt;font-family:Calibri,sans-serif;">&#8226;&nbsp;${esc(text)}</p>`;
+
+  const pageBreak = () => forPDF
+    ? `<div style="page-break-after:always;height:0;margin:0;padding:0;"></div>`
+    : `<br style="page-break-after:always;clear:both;">`;
+
+  // Heading styles — Word ignores CSS border-bottom on headings, so use a table trick instead
+  const h1 = text => `
+    <table style="border-collapse:collapse;width:100%;margin-top:16pt;margin-bottom:6pt;">
+      <tr><td style="font-family:Calibri,sans-serif;font-size:16pt;font-weight:bold;color:#1a7a3c;
+                     border-bottom:2pt solid #1a7a3c;padding:0 0 4pt 0;">
+        ${esc(text)}
+      </td></tr>
+    </table>`;
+
+  const h2 = text =>
+    `<p style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#0f4d25;
+               margin-top:12pt;margin-bottom:4pt;">${esc(text)}</p>`;
+
+  // Column widths (in %) for the main summary table — 9 cols
+  // Player(18) Roles(26) TotalField(8) 1H(7) 2H(7) Bench(8) Subs(6) Repos(6) Status(7) = 93% (browser adds some)
+  const summaryColW = ['18%','26%','8%','7%','7%','8%','6%','6%','7%'];
+
+  // Fixed-width cells avoid Word auto-layout bugs
+  // td/tdL/ath/atd/atdA — all accept plain text (auto-escaped)
+  const th = (text, w) =>
+    `<th style="background:#1a7a3c;color:#ffffff;padding:5pt 6pt;border:1pt solid #0f4d25;
+                text-align:center;font-weight:bold;font-family:Calibri,sans-serif;font-size:10pt;
+                width:${w};">${esc(text)}</th>`;
+
+  const td = (text, extraStyle='') =>
+    `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:center;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
+
+  const tdL = (text, extraStyle='') =>
+    `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:left;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
+
+  // Activity table column widths: From(10) To(10) Duration(11) Half(11) Activity(58)
+  const actColW = ['10%','10%','11%','11%','58%'];
+  const ath = (text, w) =>
+    `<th style="background:#1a7a3c;color:#ffffff;padding:5pt 6pt;border:1pt solid #0f4d25;
+                text-align:center;font-weight:bold;font-family:Calibri,sans-serif;font-size:10pt;
+                width:${w};">${esc(text)}</th>`;
+  const atd = (text, extraStyle='') =>
+    `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:center;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
+  const atdA = (text, extraStyle='') =>
+    `<td style="padding:4pt 6pt;border:1pt solid #ccddcc;text-align:left;
+                font-family:Calibri,sans-serif;font-size:10pt;${extraStyle}">${esc(String(text))}</td>`;
+
+  // Stats bar cell widths: 7 equal columns
+  const sbW = '14.28%';
+  const sbc = (label, val, bg, border) =>
+    `<td style="width:${sbW};padding:5pt 8pt;background:${bg};border:1pt solid ${border};
+                text-align:center;font-family:Calibri,sans-serif;font-size:10pt;">
+       <b>${esc(label)}</b><br>${esc(String(val))}
+     </td>`;
+
+  // ── HTML SHELL ─────────────────────────────────────────────
+  const wordNS = forPDF ? '' : `xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40"`;
+
+  const wordMeta = forPDF ? '' :
+    `<!--[if gte mso 9]><xml>
+      <w:WordDocument>
+        <w:View>Print</w:View>
+        <w:Zoom>100</w:Zoom>
+        <w:DoNotOptimizeForBrowser/>
+      </w:WordDocument>
+    </xml><![endif]-->`;
+
+  let html = `<html ${wordNS}>
+<head>
+<meta charset="UTF-8">
+<title>Match Performance Report</title>
+${wordMeta}
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 10pt;
+    color: #222222;
+    margin: 0;
+    padding: 0;
+  }
+  .page-wrap {
+    margin: ${forPDF ? '0' : '36pt 54pt'};
+    padding: ${forPDF ? '30px 40px' : '0'};
+  }
+  table { border-collapse: collapse; }
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm 2cm;
+  }
+  @media print {
+    .page-wrap { margin: 0; padding: 0; }
+    body { margin: 0; }
+    @page { size: A4 landscape; margin: 1.5cm 2cm; }
+  }
+  /* mso landscape for Word */
+  mso-page-orientation: landscape;
+</style>
+<!--[if gte mso 9]><xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>90</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+  </w:WordDocument>
+  <w:Preferences>
+    <w:Rsid w:Val="00000000"/>
+  </w:Preferences>
+</xml>
+<style>div.Section1{page:Section1;}
+@page Section1{size:841.95pt 595.35pt; mso-page-orientation:landscape; margin:72pt 72pt 72pt 72pt;}
+</style>
+<div class="Section1"><!-->
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ═══ COVER ═══════════════════════════════════════════ -->
+<div style="text-align:center;padding-top:60pt;">
+  <p style="font-size:26pt;color:#1a7a3c;font-family:Calibri,sans-serif;
+             font-weight:bold;margin-bottom:8pt;">&#9917; MATCH PERFORMANCE REPORT</p>
+  <p style="font-size:13pt;color:#555555;font-family:Calibri,sans-serif;margin:4pt 0;">${esc(gameDate)}</p>
+  <p style="font-size:12pt;font-family:Calibri,sans-serif;margin-top:16pt;margin-bottom:4pt;">
+    <b>Total Game Time:</b> ${esc(totalFmt)} &nbsp;&nbsp;|&nbsp;&nbsp;
+    <b>1st Half:</b> ${esc(h1Fmt)} &nbsp;&nbsp;|&nbsp;&nbsp;
+    <b>2nd Half:</b> ${esc(h2Fmt)}
+  </p>
+  <p style="font-size:12pt;font-family:Calibri,sans-serif;margin:4pt 0;">
+    <b>Total Players:</b> ${players.length}
+  </p>
+</div>
+
+${pageBreak()}
+
+<!-- ═══ TEAM SUMMARY TABLE ══════════════════════════════ -->
+${h1('Team Summary')}
+<table style="border-collapse:collapse;width:100%;font-family:Calibri,sans-serif;
+              font-size:10pt;margin-top:8pt;margin-bottom:12pt;table-layout:fixed;">
+  <colgroup>
+    ${summaryColW.map(w => `<col style="width:${w};">`).join('')}
+  </colgroup>
+  <thead><tr>
+    ${th('Player',         summaryColW[0])}
+    ${th('Roles Played',   summaryColW[1])}
+    ${th('Total Field',    summaryColW[2])}
+    ${th('1st Half',       summaryColW[3])}
+    ${th('2nd Half',       summaryColW[4])}
+    ${th('Bench',          summaryColW[5])}
+    ${th('Subs',           summaryColW[6])}
+    ${th('Repos',          summaryColW[7])}
+    ${th('Status',         summaryColW[8])}
+  </tr></thead>
+  <tbody>
+    ${reportData.map((row, i) => `
+    <tr style="background:${i%2===0?'#f4f9f4':'#ffffff'};">
+      ${tdL(row.name, 'font-weight:bold;')}
+      ${tdL(row.roles)}
+      ${td(row.fieldTime)}
+      ${td(row.h1Time)}
+      ${td(row.h2Time)}
+      ${td(row.benchTime)}
+      ${td(String(row.subs))}
+      ${td(String(row.repositions))}
+      ${td(row.onField?'Field':'Bench', 'color:'+( row.onField?'#1a7a3c':'#888888')+';font-weight:bold;')}
+    </tr>`).join('')}
+  </tbody>
+</table>
+
+${pageBreak()}`;
+
+  // ── PER-PLAYER PAGES ───────────────────────────────────────
+  for (let ri = 0; ri < reportData.length; ri++) {
+    const row   = reportData[ri];
+    const pid   = players.find(p => p.name === row.name)?.id;
+    const state = playerState[pid] || { segments: [] };
+
+    html += h1(row.name);
+
+    // Stats bar — fixed column widths via colgroup
+    html += `<table style="border-collapse:collapse;width:100%;margin-bottom:10pt;table-layout:fixed;">
+      <colgroup>${Array(7).fill(`<col style="width:${sbW};">`).join('')}</colgroup>
+      <tr>
+        ${sbc('Total Field', row.fieldTime, '#eaf5ee', '#c0ddc8')}
+        ${sbc('1st Half',    row.h1Time,    '#eaf5ee', '#c0ddc8')}
+        ${sbc('2nd Half',    row.h2Time,    '#eaf5ee', '#c0ddc8')}
+        ${sbc('Bench',       row.benchTime, '#fff8e6', '#e0d098')}
+        ${sbc('Subs',        row.subs,      '#f5f5f5', '#cccccc')}
+        ${sbc('Repositions', row.repositions,'#f5f5f5','#cccccc')}
+        ${sbc('Positions',   Object.keys(row._roleMap).length,'#f5f5f5','#cccccc')}
+      </tr>
+    </table>`;
+
+    // Activity table
+    html += h2('Minute-by-Minute Activity');
+
+    if (!state.segments.length) {
+      html += `<p style="color:#888888;font-style:italic;font-family:Calibri,sans-serif;font-size:11pt;">
+                 Player did not participate in this game.</p>`;
+    } else {
+      html += `<table style="border-collapse:collapse;width:100%;font-family:Calibri,sans-serif;
+                             font-size:10pt;margin-bottom:10pt;table-layout:fixed;">
+        <colgroup>${actColW.map(w=>`<col style="width:${w};">`).join('')}</colgroup>
+        <thead><tr>
+          ${ath('From',     actColW[0])}
+          ${ath('To',       actColW[1])}
+          ${ath('Duration', actColW[2])}
+          ${ath('Half',     actColW[3])}
+          ${ath('Activity', actColW[4])}
+        </tr></thead>
+        <tbody>`;
+
+      let prevEnd = 0;
+      const segs = [...state.segments].sort((a,b) => a.start_ms - b.start_ms);
+
+      segs.forEach((seg, i) => {
+        const segEnd  = seg.end_ms !== null ? seg.end_ms : elapsed;
+        const segHalf = (halftimeElapsed > 0 && seg.start_ms >= halftimeElapsed) ? '2nd Half' : '1st Half';
+
+        if (seg.start_ms > prevEnd + 1000) {
+          const gapHalf = (halftimeElapsed > 0 && prevEnd >= halftimeElapsed) ? '2nd Half' : '1st Half';
+          html += `<tr style="background:#fafafa;">
+            ${atd(formatMs(prevEnd))}
+            ${atd(formatMs(seg.start_ms))}
+            ${atd(formatMs(seg.start_ms - prevEnd))}
+            ${atd(gapHalf)}
+            ${atdA('On Bench', 'color:#888888;font-style:italic;')}
+          </tr>`;
+        }
+
+        html += `<tr style="background:${i%2===0?'#f4f9f4':'#ffffff'};">
+          ${atd(formatMs(seg.start_ms), 'font-weight:bold;')}
+          ${atd(formatMs(segEnd), 'font-weight:bold;')}
+          ${atd(formatMs(segEnd - seg.start_ms))}
+          ${atd(segHalf)}
+          ${atdA('Playing as ' + (seg.role || '—'), 'color:#1a7a3c;font-weight:bold;')}
+        </tr>`;
+
+        prevEnd = segEnd;
+      });
+
+      if (prevEnd < elapsed - 1000) {
+        const gapHalf = (halftimeElapsed > 0 && prevEnd >= halftimeElapsed) ? '2nd Half' : '1st Half';
+        html += `<tr style="background:#fafafa;">
+          ${atd(formatMs(prevEnd))}
+          ${atd(formatMs(elapsed))}
+          ${atd(formatMs(elapsed - prevEnd))}
+          ${atd(gapHalf)}
+          ${atdA('On Bench', 'color:#888888;font-style:italic;')}
+        </tr>`;
+      }
+
+      html += `</tbody></table>`;
+    }
+
+    // Summary bullets
+    html += h2('Summary');
+    const roleEntries = Object.entries(row._roleMap).sort((a,b) => b[1]-a[1]);
+    if (roleEntries.length) {
+      roleEntries.forEach(([role, ms]) => html += bullet(`Position: ${role}  —  Time: ${formatMs(ms)}`));
+    } else {
+      html += bullet('Did not play any position (bench only)');
+    }
+    html += bullet(`Total time on field: ${row.fieldTime}`);
+    html += bullet(`1st half field time: ${row.h1Time}`);
+    html += bullet(`2nd half field time: ${row.h2Time}`);
+    html += bullet(`Total time on bench: ${row.benchTime}`);
+    html += bullet(`Number of substitutions: ${row.subs}`);
+    html += bullet(`Number of repositions: ${row.repositions}`);
+    html += bullet(`Distinct positions played: ${Object.keys(row._roleMap).length}`);
+
+    if (ri < reportData.length - 1) html += pageBreak();
+  }
+
+  html += `\n</div>\n</body></html>`;
+  return html;
+}
+
+// ── platform-aware download helper ─────────────────────────
+function platformDownload(blob, filename) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    const file = new File([blob], filename, { type: blob.type });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Match Report' })
+        .catch(() => window.open(URL.createObjectURL(blob), '_blank'));
+    } else {
+      const url = URL.createObjectURL(blob);
+      const newTab = window.open(url, '_blank');
+      if (!newTab) {
+        // pop-up blocked — surface a tap link
+        const wrap = document.getElementById('report-table-wrap');
+        const old  = document.getElementById('_ios_dl_link');
+        if (old) old.remove();
+        const a = document.createElement('a');
+        a.id   = '_ios_dl_link';
+        a.href = url;
+        a.textContent = '📄 Tap here to open your report → then Share → Save to Files';
+        a.style.cssText = 'display:block;text-align:center;padding:14px;margin:10px 0;'
+          + 'background:#1a3020;border:1px solid #1a7a3c;border-radius:8px;'
+          + 'color:#f0b429;font-size:1rem;text-decoration:none;';
+        wrap.prepend(a);
+      }
+    }
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+}
+
+// ============================================================
+// WORD DOCUMENT EXPORT
+// ============================================================
+function exportWordReport() {
+  if (!gameStarted) { alert('No game data to export!'); return; }
+  const html  = buildReportHTML(getElapsed(), false);
+  const blob  = new Blob([html], { type: 'application/msword;charset=utf-8' });
+  platformDownload(blob, 'match-player-report.doc');
+}
+
+// ============================================================
+// PDF EXPORT
+// Downloads match-player-report.html — open it in any browser,
+// click the green button → Ctrl+P / Cmd+P → Save as PDF.
+// Mirrors the Word export: same blob-download, same platform logic.
+// Works on Windows, Mac, Android, iOS. No pop-up required.
+// ============================================================
+function exportPDFReport() {
+  if (!gameStarted) { alert('No game data to export!'); return; }
+
+  const reportHtml = buildReportHTML(getElapsed(), true);
+
+  // Strip the <html>/<head>/<body> wrapper from buildReportHTML so we can
+  // insert our own complete shell with the green print bar
+  const bodyContent = reportHtml
+    .replace(/^[\s\S]*?<div class="page-wrap">/, '<div class="page-wrap">')
+    .replace(/<\/body>[\s\S]*$/, '');
+
+  const fullHtml = '<!DOCTYPE html>\n' +
+'<html>\n' +
+'<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<title>Match Report</title>\n' +
+'<style>\n' +
+'  body { font-family: Calibri, Arial, sans-serif; font-size: 10pt; color: #222; margin: 0; padding: 0; }\n' +
+'  .page-wrap { padding: 20px 30px; }\n' +
+'  table { border-collapse: collapse; }\n' +
+'  @page { size: A4 landscape; margin: 1.5cm 2cm; }\n' +
+'  @media screen {\n' +
+'    #pbar { position:fixed; top:0; left:0; right:0; z-index:9999;\n' +
+'            background:#1a7a3c; color:white; padding:10px 20px;\n' +
+'            font-family:Arial,sans-serif; font-size:14px;\n' +
+'            display:flex; align-items:center; gap:16px; flex-wrap:wrap; }\n' +
+'    #pbar button { background:white; color:#1a7a3c; border:none;\n' +
+'                   padding:7px 20px; border-radius:6px; font-size:14px;\n' +
+'                   font-weight:bold; cursor:pointer; }\n' +
+'    #pbar .tip { font-size:12px; color:rgba(255,255,255,0.85); }\n' +
+'    body { padding-top: 52px; }\n' +
+'  }\n' +
+'  @media print {\n' +
+'    #pbar { display:none !important; }\n' +
+'    body { padding-top: 0; }\n' +
+'    @page { size: A4 landscape; margin: 1.5cm 2cm; }\n' +
+'  }\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div id="pbar">\n' +
+'  <span>⚽ Match Performance Report</span>\n' +
+'  <button onclick="window.print()">🖨 Print / Save as PDF</button>\n' +
+'  <span class="tip">In the print dialog → Destination: Save as PDF → Landscape</span>\n' +
+'</div>\n' +
+bodyContent + '\n' +
+'</body></html>';
+
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  platformDownload(blob, 'match-player-report.html');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function formatMs(ms) {
+  if (!ms || ms < 0) return '00:00';
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ============================================================
+// FILE IMPORT (CSV / XLSX)
+// ============================================================
+let parsedImportRows = [];  // raw 2D array from file
+
+// On touch devices (iOS/Android): show the explicit label button and let it handle taps.
+// On desktop: hide the button, the zone div click triggers the input directly.
+(function setupImportZone() {
+  function init() {
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const label = document.querySelector('label[for="import-file-input"]');
+    const zone  = document.getElementById('import-zone');
+    if (!label || !zone) return;
+    if (isTouchDevice) {
+      label.style.display = 'inline-block';
+      zone.onclick = null; // label handles the tap; avoid double file-picker trigger
+    } else {
+      label.style.display = 'none';
+      zone.onclick = function() { document.getElementById('import-file-input').click(); };
+    }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
+  else { init(); }
+})();
+
+function importDragOver(e) {
+  e.preventDefault();
+  document.getElementById('import-zone').classList.add('drag-over');
+}
+function importDragLeave(e) {
+  document.getElementById('import-zone').classList.remove('drag-over');
+}
+function importDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processImportFile(file);
+}
+function importFileSelected(e) {
+  const file = e.target.files[0];
+  if (file) processImportFile(file);
+  // reset so same file can be re-selected
+  e.target.value = '';
+}
+
+function processImportFile(file) {
+  const name = file.name.toLowerCase();
+  const isXlsx = name.endsWith('.xlsx') || name.endsWith('.xls');
+  const isCsv  = name.endsWith('.csv');
+  if (!isXlsx && !isCsv) {
+    showImportFeedback('error', '❌ Unsupported file type. Please use .csv or .xlsx');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      let rows;
+      // Always use ArrayBuffer — works on iOS Safari, Android, and desktop
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      // Filter completely empty rows
+      rows = rows.filter(r => r.some(c => String(c).trim() !== ''));
+
+      if (!rows.length) {
+        showImportFeedback('error', '❌ File appears to be empty.');
+        return;
+      }
+
+      parsedImportRows = rows;
+      showColumnPicker(rows, file.name);
+    } catch (err) {
+      showImportFeedback('error', '❌ Could not read file: ' + err.message);
+    }
+  };
+
+  // Always use ArrayBuffer — fully supported on iOS Safari, Android, and all desktops
+  reader.readAsArrayBuffer(file);
+}
+
+function showColumnPicker(rows, filename) {
+  // Figure out column headers (use first row values or generic Column A/B/C…)
+  const firstRow = rows[0] || [];
+  const numCols = Math.max(...rows.map(r => r.length));
+  const colSel = document.getElementById('column-select');
+  colSel.innerHTML = '';
+
+  for (let c = 0; c < numCols; c++) {
+    const header = String(firstRow[c] || '').trim();
+    const label = header
+      ? `Column ${String.fromCharCode(65 + c)}: "${header}"`
+      : `Column ${String.fromCharCode(65 + c)}`;
+    colSel.innerHTML += `<option value="${c}">${label}</option>`;
+  }
+
+  document.getElementById('column-picker').style.display = 'block';
+  showImportFeedback('warn', `📄 "${filename}" loaded — ${rows.length} rows detected. Choose the column with player names then click Import.`);
+}
+
+function confirmImport() {
+  const colIdx = parseInt(document.getElementById('column-select').value);
+  const skipHeader = document.getElementById('skip-header-select').value === '1';
+  const rows = skipHeader ? parsedImportRows.slice(1) : parsedImportRows;
+
+  let added = 0, skipped = 0, duplicates = 0;
+
+  rows.forEach(row => {
+    const name = String(row[colIdx] || '').trim();
+    if (!name) { skipped++; return; }
+    if (name.length > 30) { skipped++; return; }
+    if (players.find(p => p.name.toLowerCase() === name.toLowerCase())) { duplicates++; return; }
+    players.push({ id: Date.now() + Math.random(), name });
+    added++;
+  });
+
+  document.getElementById('column-picker').style.display = 'none';
+  parsedImportRows = [];
+
+  const parts = [`✅ Imported <strong>${added}</strong> player${added !== 1 ? 's' : ''}`];
+  if (duplicates) parts.push(`${duplicates} duplicate${duplicates > 1 ? 's' : ''} skipped`);
+  if (skipped) parts.push(`${skipped} blank/invalid row${skipped > 1 ? 's' : ''} ignored`);
+  showImportFeedback('success', parts.join(' · '));
+  renderRoster();
+}
+
+function showImportFeedback(type, html) {
+  const el = document.getElementById('import-feedback');
+  el.className = `import-feedback ${type}`;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+function downloadTemplate() {
+  const csv = "Player Name\nJohn Smith\nMaria Garcia\nAlex Johnson\n";
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'players-template.csv';
+  a.click();
+}
+
+// Init
+renderRoster();
+</script>
+</body>
+</html>
