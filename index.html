@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0d1b0f">
@@ -174,7 +174,7 @@
   /* ========== FORMATION / FIELD PANEL ========== */
   .formation-layout {
     display: grid;
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: minmax(0, 340px) 1fr;
     gap: 24px;
     align-items: start;
   }
@@ -183,8 +183,10 @@
     background: var(--pitch);
     border-radius: 10px;
     position: relative;
-    width: 340px;
-    height: 500px;
+    width: 100%;
+    max-width: 340px;
+    aspect-ratio: 340 / 500;   /* height auto-follows width */
+    height: auto;
     border: 3px solid #1a6a33;
     overflow: hidden;
     flex-shrink: 0;
@@ -355,8 +357,8 @@
   /* ========== GAME PANEL ========== */
   .game-layout {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 24px;
+    grid-template-columns: 1fr minmax(0, 300px);
+    gap: 20px;
   }
 
   .timer-display {
@@ -628,15 +630,13 @@
 
   /* ========== iOS / MOBILE FIXES ========== */
 
-  /* Prevent iOS Safari auto-zoom on input focus (needs font-size >= 16px) */
-  input[type="text"], select, textarea {
-    font-size: 16px !important;
-  }
+  /* Allow zoom (viewport has no maximum-scale) but prevent iOS auto-zoom on inputs */
+  input[type="text"], select, textarea { font-size: 16px !important; }
 
-  /* Remove tap highlight flash on iOS */
+  /* Remove iOS tap highlight */
   * { -webkit-tap-highlight-color: transparent; }
 
-  /* Add :active states so buttons feel responsive on touch */
+  /* Touch active states */
   .btn-green:active  { background: var(--green-dark) !important; transform: scale(0.97); }
   .btn-gold:active   { opacity: 0.75 !important; transform: scale(0.97); }
   .btn-red:active    { opacity: 0.75 !important; transform: scale(0.97); }
@@ -644,128 +644,126 @@
   .timer-controls button:active { opacity: 0.75; transform: scale(0.96); }
   .tab:active        { color: var(--gold); }
 
-  /* Ensure all interactive elements meet Apple's 44pt minimum touch target */
-  .tab           { min-height: 44px; display: flex; align-items: center; }
+  /* 44pt minimum touch targets */
+  .tab              { min-height: 44px; display: flex; align-items: center; }
   .btn-green, .btn-gold, .btn-red { min-height: 44px; }
-  .preset-btn    { min-height: 36px; padding: 6px 12px; }
+  .preset-btn       { min-height: 36px; padding: 6px 12px; }
   .timer-controls button { min-height: 44px; }
-  .player-item   { min-height: 44px; }
+  .player-item      { min-height: 44px; }
   .game-player-card { min-height: 52px; }
-  .slot-card     { min-height: 52px; }
+  .slot-card        { min-height: 52px; }
 
-  /* ========== RESPONSIVE BREAKPOINTS ========== */
+  /* ── Game live-field layout ── */
+  .game-live-field-wrap {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    flex-wrap: nowrap;
+  }
+  .game-live-field-col {
+    flex: 0 0 auto;
+    width: clamp(130px, 28vw, 220px);
+  }
+  #game-soccer-field {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 220 / 330 !important;
+  }
+  .game-live-players-col {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 
-  /* Tablet: 768px and below */
+  /* ========== TABLET — 768px ========== */
   @media (max-width: 768px) {
     .panel { padding: 16px; }
-
     header { padding: 12px 16px; }
     header h1 { font-size: 1.5rem; }
     header span { display: none; }
 
-    /* Roster: stack all 3 columns */
+    /* Roster */
     .roster-grid { grid-template-columns: 1fr !important; max-width: 100% !important; }
 
     /* Formation: stack field + assignments */
     .formation-layout { grid-template-columns: 1fr; }
-    .soccer-field { width: 100% !important; max-width: 400px; height: 380px; margin: 0 auto; display: block; }
+    .soccer-field { max-width: 100%; margin: 0 auto; display: block; }
 
-    /* Game: stack players + log */
+    /* Game: stack game col + log col */
     .game-layout { grid-template-columns: 1fr; }
-
-    /* Game player grid: 1 column on phone */
     .game-players-grid { grid-template-columns: 1fr 1fr; }
 
-    /* Game field: smaller on tablet, full width */
-    #game-soccer-field { width: 180px !important; height: 270px !important; }
-
-    /* Slot grid in formation: 1 column */
+    /* Slot grid */
     .slot-grid { grid-template-columns: 1fr !important; }
 
-    /* Modals: full-width on small screens */
+    /* Modals */
     .modal { width: 92vw !important; max-width: 92vw !important; padding: 20px 16px; }
 
-    /* Timer: stack label and clocks */
+    /* Timer */
     .timer-display .time { font-size: 3.2rem; }
     #real-time-display   { font-size: 2rem !important; }
-
-    /* Timer controls: wrap and enlarge buttons */
-    .timer-controls {
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-    }
+    .timer-controls { flex-wrap: wrap; gap: 8px; justify-content: center; }
     .timer-controls button {
-      font-size: 0.85rem;
-      padding: 10px 14px;
-      flex: 1 1 auto;
-      min-width: 100px;
-      max-width: 160px;
+      font-size: 0.85rem; padding: 10px 14px;
+      flex: 1 1 auto; min-width: 100px; max-width: 160px;
     }
 
-    /* Sub-log: give it breathing room below game */
+    /* Log */
     .sub-log { margin-top: 16px; }
     .log-list { max-height: 260px; }
 
-    /* Report table: allow horizontal scroll */
+    /* Report */
     .report-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { font-size: 0.8rem; }
     th, td { padding: 6px 8px; }
   }
 
-  /* Phone: 480px and below */
+  /* ========== PHONE — 480px ========== */
   @media (max-width: 480px) {
-    .panel { padding: 12px 10px; }
+    .panel { padding: 10px 8px; }
 
     .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
     .tab  { padding: 12px 14px; font-size: 0.95rem; flex-shrink: 0; }
-
     header h1 { font-size: 1.3rem; }
 
-    /* Single column everywhere on phone */
+    /* All grids → single column */
     .game-players-grid { grid-template-columns: 1fr; }
     .roster-grid       { grid-template-columns: 1fr !important; }
 
-    /* Soccer field: full width, shorter */
-    .soccer-field { height: 300px; }
+    /* Formation field: taller ratio on small phones */
+    .soccer-field { aspect-ratio: 340 / 440; }
 
-    /* Game live field: stack above player list on tiny phones */
-    #game-soccer-field { width: 100% !important; height: 200px !important; max-width: 100% !important; }
-    #game-soccer-field ~ * { margin-top: 8px; }
+    /* Game live field: stack vertically on phones */
+    .game-live-field-wrap { flex-direction: column; gap: 10px; }
+    .game-live-field-col  { width: 100% !important; max-width: 100% !important; }
+    #game-soccer-field    { aspect-ratio: 220 / 330 !important; }   /* keep portrait ratio */
+    .game-live-players-col { width: 100%; }
 
-    /* Field player dots: slightly smaller */
-    .field-player .player-dot { width: 30px; height: 30px; font-size: 0.55rem; }
-    .field-player .player-label { font-size: 0.52rem; max-width: 50px; }
+    /* Player dots scale */
+    .field-player .player-dot  { width: 28px; height: 28px; font-size: 0.5rem; }
+    .field-player .player-label { font-size: 0.48rem; max-width: 44px; }
 
     /* Timer */
-    .timer-display { padding: 14px 10px; }
-    .timer-display .time { font-size: 2.8rem; }
-    #real-time-display   { font-size: 1.7rem !important; }
-
-    /* Divider between clocks: hide on tiny screens */
+    .timer-display { padding: 12px 8px; }
+    .timer-display .time { font-size: 2.6rem; }
+    #real-time-display   { font-size: 1.6rem !important; }
     .clock-divider { display: none !important; }
+    .timer-controls button { font-size: 0.8rem; padding: 10px; min-width: 72px; }
 
-    /* Buttons: full width stacking */
-    .timer-controls button {
-      font-size: 0.8rem;
-      padding: 10px 10px;
-      min-width: 80px;
-    }
-
-    /* Reposition modal: stack the A/B player grids */
-    #repo-second-section { grid-template-columns: 1fr !important; }
+    /* Modals: stack all repo/sub grids */
+    #repo-second-section,
+    #repo-third-section  { grid-template-columns: 1fr !important; }
 
     /* Cards */
-    .card { padding: 14px 12px; }
+    .card { padding: 12px 10px; }
+    .import-zone { padding: 14px 8px; }
 
-    /* Import zone */
-    .import-zone { padding: 16px 10px; }
-
-    /* Match log: smaller font */
+    /* Log */
     .log-item { font-size: 0.78rem; }
     .log-time  { font-size: 0.9rem; min-width: 40px; }
 
-    /* Slot cards in formation */
+    /* Slot cards */
     .slot-card { padding: 8px; gap: 8px; }
     .slot-icon { width: 26px; height: 26px; font-size: 0.55rem; flex-shrink: 0; }
   }
@@ -963,9 +961,9 @@
       </div>
 
       <!-- Live field view -->
-      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:4px;">
-        <div style="flex:0 0 auto;">
-          <div class="soccer-field" id="game-soccer-field" style="width:220px;height:330px;pointer-events:none;">
+      <div class="game-live-field-wrap">
+        <div class="game-live-field-col">
+          <div class="soccer-field" id="game-soccer-field" style="pointer-events:none;">
             <div style="position:absolute;width:100%;height:100%;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 50px,transparent 50px,transparent 100px);"></div>
             <div class="halfway-line"></div>
             <div class="center-circle field-marking"></div>
@@ -977,8 +975,8 @@
           </div>
           <p style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-align:center;">Live positions</p>
         </div>
-        <div style="flex:1;min-width:0;">
-          <div class="section-title" style="margin-top:0;">🟢 ON FIELD <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;">Click a player to reposition</span></div>
+        <div class="game-live-players-col">
+          <div class="section-title" style="margin-top:0;">🟢 ON FIELD <span style="font-family:'DM Sans';font-size:0.75rem;color:var(--text-muted);font-weight:400;margin-left:8px;">Tap a player to sub</span></div>
           <div class="game-players-grid" id="field-players-ui"></div>
           <div class="section-title">🪑 ON BENCH</div>
           <div class="game-players-grid" id="bench-players-ui"></div>
