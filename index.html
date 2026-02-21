@@ -931,9 +931,9 @@
     <div>
       <div class="halftime-banner" id="halftime-banner">⚽ HALF TIME ⚽</div>
       <div class="pause-banner" id="pause-banner">⏸ PAUSED</div>
-      <div id="duplicate-banner" style="display:none;background:#1a4fa8;color:white;text-align:center;
-           padding:10px;font-family:'Bebas Neue';font-size:1.1rem;letter-spacing:0.08em;
-           margin-bottom:16px;border-radius:8px;"></div>
+      <div id="duplicate-banner" style="display:none;background:#c0392b;color:white;
+           padding:12px 16px;font-family:'DM Sans';font-size:0.88rem;
+           margin-bottom:16px;border-radius:8px;border:2px solid #e74c3c;"></div>
 
       <div class="timer-display">
         <div class="period" id="period-label">FIRST HALF</div>
@@ -1529,11 +1529,11 @@ function renderGameField() {
     const fieldTime = gameStarted ? formatMs(playerTimeOnField(String(player.id), elapsed)) : '';
 
     div.innerHTML = `
-      <div class="player-dot ${isGK ? 'gk' : ''}" style="width:28px;height:28px;font-size:0.5rem;border-width:2px;">
-        ${initials(player.name)}
+      <div class="player-dot ${isGK ? 'gk' : ''}" style="width:28px;height:28px;font-size:0.48rem;border-width:2px;line-height:1;">
+        ${initials(currentRole)}
       </div>
-      <div class="player-label" style="font-size:0.48rem;max-width:44px;">${player.name}</div>
-      ${gameStarted ? `<div class="player-role" style="font-size:0.42rem;color:rgba(255,255,255,0.7);">${fieldTime}</div>` : ''}
+      <div class="player-label" style="font-size:0.48rem;max-width:48px;">${player.name}</div>
+      ${gameStarted ? `<div class="player-role" style="font-size:0.4rem;color:rgba(255,255,255,0.65);">${fieldTime}</div>` : ''}
     `;
     field.appendChild(div);
   });
@@ -1692,6 +1692,7 @@ function resumeGame() {
   document.getElementById('period-label').textContent      = 'SECOND HALF';
   addLog('resume', null, null, elapsed);
   startTimer();
+  checkDuplicates();
 }
 
 function endGame() {
@@ -1713,6 +1714,8 @@ function confirmEndGame() {
   });
 
   addLog('end', null, null, elapsed);
+  const db = document.getElementById('duplicate-banner');
+  if (db) { db.style.display = 'none'; db.innerHTML = ''; }
   document.getElementById('period-label').textContent      = 'FULL TIME';
   document.getElementById('btn-sub').style.display         = 'none';
   document.getElementById('btn-reposition').style.display  = 'none';
@@ -1887,6 +1890,7 @@ function confirmSub() {
   if (anyDone) {
     closeModal('sub-modal');
     renderGamePlayers();
+    checkDuplicates();
   }
 }
 
@@ -2021,32 +2025,41 @@ function applyReposition(playerId, newRole, elapsed) {
   addLog('reposition', playerId, null, elapsed, newRole);
 }
 
-let _dupBannerTimer = null;
-function scheduleDuplicateCheck() {
-  clearTimeout(_dupBannerTimer);
-  _dupBannerTimer = setTimeout(() => {
-    const banner = document.getElementById('duplicate-banner');
-    if (!banner) return;
+function checkDuplicates() {
+  const banner = document.getElementById('duplicate-banner');
+  if (!banner) return;
 
-    // Count how many field players share each role
-    const roleCounts = {};
-    players.forEach(p => {
-      const role = playerState[p.id]?.currentRole;
-      if (role) roleCounts[role] = (roleCounts[role] || 0) + 1;
+  // Build role → [playerNames] map for field players only
+  const roleMap = {};
+  players.forEach(p => {
+    const role = playerState[p.id]?.currentRole;
+    if (!role) return;
+    if (!roleMap[role]) roleMap[role] = [];
+    roleMap[role].push(p.name);
+  });
+
+  const dupes = Object.entries(roleMap).filter(([, names]) => names.length > 1);
+
+  if (dupes.length) {
+    // Header line
+    let html = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.08em;margin-bottom:8px;">⚠ DUPLICATE POSITIONS — PLEASE REPOSITION</div>`;
+    // One row per duplicated position showing all players in it
+    dupes.forEach(([role, names]) => {
+      html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+        <span style="background:rgba(0,0,0,0.3);border-radius:5px;padding:3px 10px;font-weight:700;white-space:nowrap;">📍 ${role}</span>
+        <span style="color:#ffd0cc;">${names.join(' &amp; ')}</span>
+      </div>`;
     });
-    const dupes = Object.entries(roleCounts).filter(([,c]) => c > 1);
-
-    if (dupes.length) {
-      const msg = dupes.map(([r,c]) => `${c}x ${r}`).join('  |  ');
-      banner.textContent = '⚠ DUPLICATE POSITIONS: ' + msg;
-      banner.style.display = 'block';
-      // Auto-hide after 15 seconds
-      setTimeout(() => { banner.style.display = 'none'; }, 15000);
-    } else {
-      banner.style.display = 'none';
-    }
-  }, 30000); // show 30 seconds after the reposition
+    banner.innerHTML = html;
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+    banner.innerHTML = '';
+  }
 }
+
+// Keep old name as alias so any existing call sites still work
+function scheduleDuplicateCheck() { checkDuplicates(); }
 
 // ============================================================
 // LOG
